@@ -29,10 +29,51 @@ export class GraphService {
       where: { investigationId },
     });
 
-    if (!state) {
-      return { nodes: [], zoom: 1, pan: { x: 0, y: 0 } };
+    if (state) {
+      return state.data;
     }
 
-    return state.data;
+    // Auto-discover graph from entities and relations
+    const entities = await this.prisma.entity.findMany({
+      where: { investigationId },
+      include: {
+        outRelations: {
+          include: { to: true }
+        }
+      }
+    });
+
+    const nodes = entities.map(e => ({
+      data: { id: e.id, label: e.value, kind: e.kind }
+    }));
+
+    const edges: any[] = [];
+    const seenEdges = new Set();
+
+    for (const e of entities) {
+      for (const rel of e.outRelations) {
+        const edgeId = `${rel.fromId}-${rel.toId}-${rel.relation}`;
+        if (!seenEdges.has(edgeId)) {
+          edges.push({
+            data: { 
+              id: rel.id, 
+              source: rel.fromId, 
+              target: rel.toId, 
+              relation: rel.relation 
+            }
+          });
+          seenEdges.add(edgeId);
+
+          // Add target entity to nodes if it's not already there (e.g. if it's not part of the investigation yet)
+          if (!nodes.some(n => n.data.id === rel.toId)) {
+            nodes.push({
+              data: { id: rel.to.id, label: rel.to.value, kind: rel.to.kind }
+            });
+          }
+        }
+      }
+    }
+
+    return { elements: [...nodes, ...edges] };
   }
 }

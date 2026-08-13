@@ -4,7 +4,7 @@ import { ProvidersService } from './providers.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { Role, enrichmentRequestSchema, EnrichmentRequestDto } from '@osint/types';
+import { Role, enrichmentRequestSchema, EnrichmentRequestDto, quickEnrichmentSchema, QuickEnrichmentDto } from '@osint/types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Request } from 'express';
 
@@ -21,6 +21,14 @@ export class ProvidersController {
   @UsePipes(new ZodValidationPipe(enrichmentRequestSchema))
   requestEnrichment(@Body() dto: EnrichmentRequestDto, @Req() req: Request) {
     return this.providersService.requestEnrichment(dto, req.user as any);
+  }
+
+  @Post('quick')
+  @Roles(Role.ADMIN, Role.ANALYST)
+  @ApiOperation({ summary: 'Quick search: auto-create entity and enrich' })
+  @UsePipes(new ZodValidationPipe(quickEnrichmentSchema))
+  quickEnrich(@Body() dto: QuickEnrichmentDto, @Req() req: Request) {
+    return this.providersService.quickEnrich(dto, req.user as any);
   }
 
   @Get('job/:id')

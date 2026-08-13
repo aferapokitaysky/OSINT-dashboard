@@ -32,6 +32,8 @@ export class EnrichmentProcessor extends WorkerHost {
       ? availableProviders.filter(p => requestedProviders.includes(p.meta.name))
       : availableProviders;
 
+    this.logger.log(`Selected providers for ${entityKind}: ${providersToRun.map(p => p.meta.name).join(', ')}`);
+
     if (providersToRun.length === 0) {
       this.logger.warn(`No suitable providers found for ${entityKind} / ${value}`);
       return { successCount: 0, errorCount: 0 };
@@ -68,7 +70,7 @@ export class EnrichmentProcessor extends WorkerHost {
                   type: signal.type,
                   severity: signal.severity as any,
                   score: signal.score,
-                  title: `${signal.severity} signal from ${provider.meta.name}`,
+                  title: (signal as any).title || `${signal.type.split('_').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`,
                   description: signal.description,
                 },
               });
@@ -82,12 +84,15 @@ export class EnrichmentProcessor extends WorkerHost {
               
               const toEntity = await this.prisma.entity.upsert({
                 where: { kind_normalized: { kind: rel.kind as any, normalized: relNormalized } },
-                update: {},
+                update: {
+                  investigationId: job.data.investigationId || null,
+                },
                 create: {
                   kind: rel.kind as any,
                   value: rel.value,
                   normalized: relNormalized,
                   createdById: job.data.requestedBy,
+                  investigationId: job.data.investigationId || null,
                 },
               });
 

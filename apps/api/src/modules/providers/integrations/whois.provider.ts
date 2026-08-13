@@ -47,6 +47,15 @@ export class WhoisProvider extends BaseProvider {
       return {
         data,
         relatedEntities,
+        riskSignals: [
+          {
+            type: 'registration_data',
+            title: 'Registration Registry',
+            severity: 'INFO' as const,
+            score: 0,
+            description: `Entity registered through ${entityKind === EntityKind.DOMAIN ? 'Registrar' : 'RIR'}: ${Object.keys(data)[0] || 'Unknown'}`,
+          }
+        ],
       };
     } catch (error) {
       throw error;
