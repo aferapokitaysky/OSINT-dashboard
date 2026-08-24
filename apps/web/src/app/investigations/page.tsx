@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldAlert, Plus, Calendar, Clock, User, ChevronRight, Search } from 'lucide-react';
+import { ShieldAlert, Plus, Clock, User, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const investigations = [
