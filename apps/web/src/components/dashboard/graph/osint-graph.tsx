@@ -102,7 +102,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
                 'color': '#fff',
               }
             }
-          ],
+          ] as unknown as cytoscape.CytoscapeOptions['style'],
           layout: {
             name: 'cose',
             animate: false, // Disable initial animation to avoid renderer issues
