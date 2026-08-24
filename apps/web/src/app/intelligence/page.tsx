@@ -1,107 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, Shield, Globe, Mail, Hash, User, Wallet, Activity, Zap, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { FormEvent, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ArrowRight, CheckCircle2, CircleAlert, Radar, Sparkles } from 'lucide-react';
+import { api, detectEntityKind, EntityKind } from '@/lib/api';
+import { Badge, Button, EmptyState, QueryError, Skeleton } from '@/components/ui/primitives';
 
-const entityTypes = [
-  { id: 'ip', label: 'IP Address', icon: Globe, placeholder: '8.8.8.8' },
-  { id: 'domain', label: 'Domain', icon: Zap, placeholder: 'google.com' },
-  { id: 'email', label: 'Email', icon: Mail, placeholder: 'target@example.com' },
-  { id: 'hash', label: 'Hash', icon: Hash, placeholder: 'sha256...' },
-  { id: 'username', label: 'Username', icon: User, placeholder: 'handle_name' },
-  { id: 'crypto', label: 'Crypto Wallet', icon: Wallet, placeholder: '0x...' },
-];
+const kinds: EntityKind[] = ['IP', 'DOMAIN', 'URL', 'EMAIL', 'HASH', 'USERNAME', 'CRYPTO_WALLET'];
 
 export default function IntelligencePage() {
-  const [selectedType, setSelectedType] = useState('ip');
-  const [query, setQuery] = useState('');
+  const [value, setValue] = useState(''); const [manualKind, setManualKind] = useState<EntityKind | ''>(''); const [investigationId, setInvestigationId] = useState(''); const [job, setJob] = useState<{ id: string; entityId: string } | null>(null);
+  const cases = useQuery({ queryKey: ['investigations'], queryFn: () => api.investigations() });
+  const providers = useQuery({ queryKey: ['providers'], queryFn: api.providers });
+  const kind = manualKind || detectEntityKind(value);
+  const supportedProviders = useMemo(() => providers.data?.filter(provider => kind && provider.supports.includes(kind)) ?? [], [providers.data, kind]);
+  const run = useMutation({
+    mutationFn: async () => { if (!investigationId || !kind) throw new Error('Choose an investigation and a supported entity type.'); const entity = await api.addEntity(investigationId, { value, kind }); const enrichment = await api.enrich(entity.entity.id); return { id: enrichment.jobId, entityId: entity.entity.id }; },
+    onSuccess: setJob,
+  });
+  function submit(event: FormEvent) { event.preventDefault(); run.mutate(); }
+  const caseItems = cases.data?.items ?? [];
 
-  return (
-    <div className="max-w-6xl mx-auto pt-12 animate-fade-up">
-      {/* Header Area */}
-      <div className="text-center mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 glass-panel border-white/10 rounded-full mb-6">
-          <Shield className="w-4 h-4 text-brand-gray-200" />
-          <span className="text-[10px] uppercase tracking-widest text-brand-gray-200">Enrichment Pipeline v2.4</span>
-        </div>
-        <h1 className="title-serif text-6xl mb-4">Entity Intelligence</h1>
-        <p className="text-brand-gray-300 max-w-xl mx-auto">
-          Deep enrichment across 15+ providers. Enter any entity below to start real-time intelligence gathering.
-        </p>
-      </div>
-
-      {/* Search Console */}
-      <div className="glass-panel p-2 mb-12">
-        <div className="flex flex-col md:flex-row gap-2">
-          {/* Type Selector */}
-          <div className="flex flex-wrap md:flex-nowrap gap-1 p-1 bg-white/5 rounded-[22px]">
-            {entityTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all duration-300 group",
-                  selectedType === type.id 
-                    ? "bg-white text-black shadow-lg" 
-                    : "text-brand-gray-200 hover:bg-white/5 hover:text-white"
-                )}
-              >
-                <type.icon className={cn("w-3.5 h-3.5", selectedType === type.id ? "text-black" : "text-brand-gray-300 group-hover:text-white")} />
-                <span className="text-[10px] uppercase tracking-wider font-bold">{type.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Input Area */}
-          <div className="flex-1 relative group">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Enter ${entityTypes.find(t => t.id === selectedType)?.label}...`}
-              className="w-full h-full bg-white/5 border border-white/5 rounded-[22px] px-6 py-4 text-sm font-mono placeholder:text-brand-gray-300 focus:outline-none focus:border-white/20 transition-all"
-            />
-            <button className="absolute right-2 top-2 bottom-2 px-6 bg-white text-black rounded-[18px] flex items-center gap-2 hover:opacity-90 transition-all group active:scale-95">
-              <Search className="w-4 h-4" />
-              <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Investigate</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Info Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="glass-panel p-8 group hover:border-white/20 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <Activity className="w-6 h-6 text-brand-gray-200" />
-          </div>
-          <h3 className="title-serif text-xl mb-3">Live Enrichment</h3>
-          <p className="text-xs text-brand-gray-300 leading-relaxed">
-            Every query triggers a background worker pipeline that hits Shodan, VirusTotal, AbuseIPDB and other providers in parallel.
-          </p>
-        </div>
-
-        <div className="glass-panel p-8 group hover:border-white/20 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <Zap className="w-6 h-6 text-brand-gray-200" />
-          </div>
-          <h3 className="title-serif text-xl mb-3">Graph Correlation</h3>
-          <p className="text-xs text-brand-gray-300 leading-relaxed">
-            Entities are automatically linked. Discovering an IP might reveal its related domains, subnets, and registrar info instantly.
-          </p>
-        </div>
-
-        <div className="glass-panel p-8 group hover:border-white/20 transition-all">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <Info className="w-6 h-6 text-brand-gray-200" />
-          </div>
-          <h3 className="title-serif text-xl mb-3">Audit-Ready</h3>
-          <p className="text-xs text-brand-gray-300 leading-relaxed">
-            Every search is logged in the permanent audit trail with the operator&apos;s ID, ensuring chain of custody for all gathered data.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-6xl animate-fade-up pb-12"><section className="border-b border-white/10 pb-9"><p className="text-[10px] font-bold uppercase tracking-[.25em] text-cyan-200">Public-source intelligence</p><h1 className="title-serif mt-3 max-w-3xl text-5xl leading-none md:text-6xl">Turn an indicator into a traceable investigation.</h1><p className="mt-5 max-w-2xl text-sm leading-6 text-brand-gray-200">The query is stored in a case before enrichment starts. Every result retains its provider, timestamp and confidence.</p></section>
+    <form onSubmit={submit} className="mt-8 grid gap-5 lg:grid-cols-[1.5fr_.8fr]"><section className="glass-panel p-6"><label className="text-[10px] font-bold uppercase tracking-widest text-brand-gray-200">Indicator</label><input value={value} onChange={e => { setValue(e.target.value); setJob(null); }} className="mt-3 w-full border-b border-white/15 bg-transparent pb-4 font-mono text-xl outline-none placeholder:text-brand-gray-300 focus:border-cyan-300" placeholder="IP, domain, URL, email, hash or username" autoFocus/><div className="mt-5 flex flex-wrap gap-2">{kinds.map(item => <button type="button" key={item} onClick={() => setManualKind(manualKind === item ? '' : item)} className={`rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-wider transition ${kind === item ? 'border-cyan-300/60 bg-cyan-300/10 text-cyan-100' : 'border-white/10 text-brand-gray-200 hover:border-white/30'}`}>{item}</button>)}</div>{value && <p className="mt-5 text-xs text-brand-gray-200">Detected type: <b className="text-white">{kind ?? 'Unknown — choose type manually'}</b></p>}</section>
+      <section className="glass-panel p-6"><label className="text-[10px] font-bold uppercase tracking-widest text-brand-gray-200">Investigation context</label><select value={investigationId} onChange={e => setInvestigationId(e.target.value)} className="field mt-3 appearance-none"><option value="">Choose investigation</option>{caseItems.map(item => <option value={item.id} key={item.id}>{item.title}</option>)}</select><p className="mt-3 text-xs leading-5 text-brand-gray-200">Queries cannot run without an accountable investigation.</p><Button type="submit" className="mt-6 w-full" loading={run.isPending} disabled={!value || !kind || !investigationId}>Run enrichment <ArrowRight className="h-4 w-4"/></Button></section></form>
+    {cases.isError && <div className="mt-5"><QueryError error={cases.error}/></div>}{!cases.isLoading && caseItems.length === 0 && <div className="mt-5"><EmptyState title="Create a case before searching" description="This keeps intelligence, evidence and access control inside a clear investigation context." action={<Link href="/investigations" className="text-xs font-bold uppercase tracking-widest underline">Open investigations</Link>}/></div>}
+    {run.isError && <div className="mt-5"><QueryError error={run.error}/></div>}{job && <section className="mt-5 border border-emerald-400/25 bg-emerald-500/10 p-5"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300"/><div><p className="font-medium">Enrichment started</p><p className="mt-1 text-xs text-emerald-100/75">Job {job.id}. Live provider updates will appear here once the authorized event stream is enabled.</p></div></div><Link href={`/entities/${job.entityId}`} className="text-xs font-bold uppercase tracking-widest text-emerald-100 underline">Open dossier</Link></div></section>}
+    <section className="mt-10 grid gap-4 md:grid-cols-3"><article className="glass-panel p-5"><Radar className="h-5 w-5 text-cyan-200"/><h2 className="title-serif mt-6 text-2xl">Source-aware</h2><p className="mt-2 text-sm leading-6 text-brand-gray-200">Each result names the provider and separates no-result from provider failure.</p></article><article className="glass-panel p-5"><CircleAlert className="h-5 w-5 text-amber-200"/><h2 className="title-serif mt-6 text-2xl">Limits visible</h2><p className="mt-2 text-sm leading-6 text-brand-gray-200">Rate limits and unavailable sources remain visible; no false all-clear.</p></article><article className="glass-panel p-5"><Sparkles className="h-5 w-5 text-violet-200"/><h2 className="title-serif mt-6 text-2xl">Ready sources</h2><div className="mt-3 flex flex-wrap gap-2">{providers.isLoading ? <Skeleton className="h-6 w-28"/> : supportedProviders.length ? supportedProviders.map(x => <Badge key={x.name} value={x.displayName}/>) : <span className="text-xs text-brand-gray-200">Enter an indicator to see compatible sources.</span>}</div></article></section>
+  </div>;
 }
