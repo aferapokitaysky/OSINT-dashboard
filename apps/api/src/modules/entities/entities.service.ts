@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessControlService } from '../../common/access-control.service';
 import { CreateEntityDto, SessionUser } from '@osint/types';
 
 @Injectable()
 export class EntitiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessControl: AccessControlService,
+  ) {}
 
   async create(dto: CreateEntityDto, user: SessionUser) {
     const normalized = dto.value.trim().toLowerCase();
@@ -32,8 +36,18 @@ export class EntitiesService {
     });
   }
 
-  async findAll(investigationId?: string) {
-    const where = investigationId ? { investigationId } : {};
+  async findAll(user: SessionUser, investigationId?: string) {
+    if (investigationId) {
+      const allowed = await this.accessControl.canAccessInvestigation(user, investigationId);
+      if (!allowed) {
+        throw new ForbiddenException('Access denied to this investigation');
+      }
+    }
+
+    const where = investigationId
+      ? { investigationId }
+      : this.accessControl.entityAccessWhere(user);
+
     return this.prisma.entity.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -45,7 +59,7 @@ export class EntitiesService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: SessionUser) {
     const entity = await this.prisma.entity.findUnique({
       where: { id },
       include: {
@@ -64,6 +78,11 @@ export class EntitiesService {
 
     if (!entity) {
       throw new NotFoundException(`Entity ${id} not found`);
+    }
+
+    const allowed = await this.accessControl.canAccessEntity(user, id);
+    if (!allowed) {
+      throw new ForbiddenException('Access denied to this entity');
     }
 
     return entity;

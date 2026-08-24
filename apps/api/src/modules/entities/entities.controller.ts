@@ -26,14 +26,14 @@ export class EntitiesController {
   @Get()
   @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
   @ApiOperation({ summary: 'List entities' })
-  findAll(@Query('investigationId') investigationId?: string) {
-    return this.entitiesService.findAll(investigationId);
+  findAll(@Req() req: Request, @Query('investigationId') investigationId?: string) {
+    return this.entitiesService.findAll(req.user as any, investigationId);
   }
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
   @ApiOperation({ summary: 'Get entity details' })
-  findOne(@Param('id') id: string) {
-    return this.entitiesService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    return this.entitiesService.findOne(id, req.user as any);
   }
 }
