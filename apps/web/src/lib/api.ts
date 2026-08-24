@@ -104,6 +104,8 @@ export function detectEntityKind(value: string): EntityKind | null {
   if (/^https?:\/\//i.test(v)) return 'URL';
   if (/^(?:[a-f\d]{32}|[a-f\d]{40}|[a-f\d]{64})$/i.test(v)) return 'HASH';
   if (/^(?:bc1|0x)[a-zA-Z0-9]{20,}$/i.test(v)) return 'CRYPTO_WALLET';
+  if (/^\+?[\d\s().-]{7,24}$/.test(v)) return 'PHONE';
+  if (/^AS\d{1,10}$/i.test(v)) return 'ASN';
   if (/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(v)) return 'DOMAIN';
   if (/^[\w.-]{2,64}$/.test(v)) return 'USERNAME';
   return null;

@@ -8,7 +8,7 @@ import { api, detectEntityKind, EntityKind } from '@/lib/api';
 import { useEnrichmentUpdates } from '@/lib/realtime';
 import { Badge, Button, EmptyState, QueryError, Skeleton } from '@/components/ui/primitives';
 
-const kinds: EntityKind[] = ['IP', 'DOMAIN', 'URL', 'EMAIL', 'HASH', 'USERNAME', 'CRYPTO_WALLET'];
+const kinds: EntityKind[] = ['IP', 'DOMAIN', 'URL', 'EMAIL', 'HASH', 'USERNAME', 'PHONE', 'CRYPTO_WALLET', 'ASN', 'PERSON', 'COMPANY', 'SOCIAL_PROFILE'];
 
 export default function IntelligencePage() {
   const [value, setValue] = useState(''); const [manualKind, setManualKind] = useState<EntityKind | ''>(''); const [investigationId, setInvestigationId] = useState(''); const [job, setJob] = useState<{ id: string; entityId: string } | null>(null);
