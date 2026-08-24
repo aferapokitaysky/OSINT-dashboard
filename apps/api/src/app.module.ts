@@ -10,6 +10,7 @@ import { EntitiesModule } from './modules/entities/entities.module';
 import { InvestigationsModule } from './modules/investigations/investigations.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { EventsModule } from './modules/events/events.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { EventsModule } from './modules/events/events.module';
     InvestigationsModule,
     ProvidersModule,
     EventsModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [
