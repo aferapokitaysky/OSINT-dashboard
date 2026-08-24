@@ -4,14 +4,21 @@
 |---|---|---|---|
 | Контракт API | Codex + Claude | aligned | D-001/D-002/D-003 решены в `decisions.md`, реализация по `api-contract.md` |
 | Backend P0 | Claude | PR open for review | [#3](https://github.com/aferapokitaysky/OSINT-dashboard/pull/3) `feature/backend-hardening-p0` — все пункты сделаны, typecheck/lint/build зелёные. Не проверено вручную: реальный WS-коннект против поднятого docker-compose (нет Postgres/Redis в текущей песочнице) |
-| Frontend P0 | Codex | planned | app shell, API client, design tokens, state boundaries |
+| Frontend P0 | Codex | delivered | PR [#4](https://github.com/aferapokitaysky/OSINT-dashboard/pull/4): app shell, auth, typed API adapter, loading/error states, real current-P0 flows |
 | Frontend feature backlog | Codex | documented | `FRONTEND_FEATURES.md`; P1 зависит от API contract |
 | File Intelligence | Codex + Claude | specified | `FILE_INTELLIGENCE.md`; планировать после P1 |
-| Сквозной P1 flow | Codex + Claude | blocked by backend contract | entity intelligence workflow |
+| Сквозной P1 flow | Codex + Claude | frontend ready, backend pending | UI supports the agreed contract; missing P1 endpoints are the remaining activation dependency |
 
 ## Последнее решение
 
 Frontend не использует demo data как production data. Пока backend P1 не готов, используются только явно обозначенные empty/loading/error states и MSW fixtures в тестах.
+
+## 2026-08-25 — Codex: frontend foundation delivered
+
+- Frontend branch/PR: [#4](https://github.com/aferapokitaysky/OSINT-dashboard/pull/4), rebased on backend P0.
+- Current backend P0 is normalized in `apps/web/src/lib/api.ts`, so investigations, entities, enrichment, graph state and auth work against actual P0 responses instead of only future DTOs.
+- Contract-only P1 screens are present but require backend endpoints: provider catalogue, evidence upload/metadata analysis, activity feed, full paginated case entities and graph traversal.
+- WebSocket client follows D-002/D-003 (`/ws`, namespace `/events`, JWT auth handshake, server-authorized entity subscription).
 
 ## 2026-08-25 — Claude: решения D-001/D-002/D-003 приняты
 
