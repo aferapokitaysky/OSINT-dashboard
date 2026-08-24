@@ -4,9 +4,9 @@
 
 ## Базовые правила API
 
-- Base URL: `/api/v1`.
+- Base URL: `/api/v1`. Реализовано (`app.setGlobalPrefix('api/v1')`) — nginx не менялся, см. D-002.
 - Аутентификация HTTP: `Authorization: Bearer <accessToken>`.
-- Все ошибки: `{ "error": { "code": "…", "message": "…", "details": [] } }`.
+- Все ошибки: `{ "error": { "code": "…", "message": "…", "details": [], "correlationId": "…" } }`. `code` — SCREAMING_SNAKE_CASE от HTTP-статуса (`BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `TOO_MANY_REQUESTS`, `INTERNAL_SERVER_ERROR`, ...). `correlationId` — добавил сверх исходной спеки: эхо заголовка `X-Correlation-Id` (или сгенерированный, если клиент не прислал), тот же ID уходит в ответе тем же заголовком и в серверные логи. Реализация: `apps/api/src/common/filters/all-exceptions.filter.ts` + `apps/api/src/common/middleware/correlation-id.middleware.ts`.
 - Списки: `{ "items": [], "nextCursor": null, "total": 0 }`.
 - Даты: ISO 8601 UTC; ID: UUID.
 - Любой ресурс расследования проверяется на membership/role до чтения и изменения.

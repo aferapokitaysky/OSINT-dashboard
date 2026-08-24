@@ -5,6 +5,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { correlationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 // Load .env from workspace root
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
@@ -14,6 +16,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  app.use(correlationIdMiddleware);
   app.use(helmet());
   app.enableCors({
     origin: process.env.CORS_ORIGINS?.split(',') || 'http://localhost:3000',
@@ -26,6 +29,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   const config = new DocumentBuilder()
     .setTitle('OSINT Platform API')
