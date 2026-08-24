@@ -60,7 +60,7 @@ async function refreshAccessToken(): Promise<string | null> {
       const refreshToken = localStorage.getItem('osint.refresh-token');
       if (!refreshToken) return null;
       const response = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ refreshToken }) });
-      if (!response.ok) { localStorage.removeItem('osint.access-token'); localStorage.removeItem('osint.refresh-token'); return null; }
+      if (!response.ok) { localStorage.removeItem('osint.access-token'); localStorage.removeItem('osint.refresh-token'); window.dispatchEvent(new Event('osint:session-ended')); return null; }
       const payload = await response.json() as AuthTokens;
       localStorage.setItem('osint.access-token', payload.accessToken);
       localStorage.setItem('osint.refresh-token', payload.refreshToken);
