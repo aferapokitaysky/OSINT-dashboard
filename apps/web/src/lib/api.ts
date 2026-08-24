@@ -16,6 +16,7 @@ export interface EntityDossier { entity: Entity; findings: Finding[]; results: P
 export interface Provider { name: string; displayName: string; supports: EntityKind[]; enabled: boolean; freeTier?: string; status?: string }
 export interface Evidence { id: string; title: string; kind: 'file' | 'note' | 'link'; mimeType?: string; sizeBytes?: number; sha256?: string; createdAt: string; uploader?: { displayName: string }; analysis?: FileAnalysis }
 export interface FileAnalysis { status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'UNSUPPORTED'; detectedMime?: string; sha256?: string; sha1?: string; md5?: string; metadata?: Record<string, unknown>; warnings?: string[]; analyzedAt?: string }
+export interface ActivityLog { id: string; action: string; targetType?: string; targetId?: string; actor?: { displayName: string }; createdAt: string; metadata?: Record<string, unknown> }
 export interface Paginated<T> { items: T[]; nextCursor: string | null; total: number }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
@@ -53,6 +54,7 @@ export const api = {
   providers: () => request<Provider[]>('/providers'),
   evidence: (investigationId: string) => request<Paginated<Evidence>>(`/investigations/${investigationId}/evidence`),
   uploadEvidence: (investigationId: string, file: File) => { const form = new FormData(); form.append('file', file); return request<Evidence>(`/investigations/${investigationId}/evidence/files`, { method: 'POST', body: form }); },
+  activity: () => request<Paginated<ActivityLog>>('/activity'),
 };
 
 export function detectEntityKind(value: string): EntityKind | null {

@@ -1,9 +1,11 @@
 'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { Clock3, Fingerprint } from 'lucide-react';
+import { api } from '@/lib/api';
+import { EmptyState, QueryError, Skeleton } from '@/components/ui/primitives';
+
 export default function LogsPage() {
-  return (
-    <div className="max-w-6xl mx-auto pt-12 animate-fade-up">
-      <h1 className="title-serif text-5xl mb-4">Audit Logs</h1>
-      <p className="text-brand-gray-300">Permanent record of all intelligence activities and system events.</p>
-    </div>
-  );
+  const activity = useQuery({ queryKey: ['activity'], queryFn: api.activity });
+  return <div className="mx-auto max-w-6xl animate-fade-up pb-12"><header className="border-b border-white/10 pb-8"><p className="text-[10px] font-bold uppercase tracking-[.25em] text-cyan-200">Chain of custody</p><h1 className="title-serif mt-3 text-5xl">Audit log</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-brand-gray-200">A chronological record of intelligence actions. Records identify the actor, target and time without exposing provider credentials or sensitive payloads.</p></header><section className="glass-panel mt-7 p-6"><div className="flex items-center gap-3"><Fingerprint className="h-5 w-5 text-violet-200"/><div><p className="text-[10px] font-bold uppercase tracking-widest text-brand-gray-200">Immutable activity</p><h2 className="title-serif mt-1 text-3xl">Operational trail</h2></div></div>{activity.isLoading && <div className="mt-6 space-y-3">{[1,2,3].map(x => <Skeleton key={x} className="h-16"/>)}</div>}{activity.isError && <div className="mt-6"><QueryError error={activity.error}/></div>}{!activity.isLoading && !activity.isError && !activity.data?.items.length && <div className="mt-6"><EmptyState title="No recorded activity" description="Actions such as enrichment requests, evidence uploads and status changes will appear here once they occur."/></div>}{activity.data?.items.length ? <div className="mt-6 divide-y divide-white/5">{activity.data.items.map(record => <article key={record.id} className="flex gap-4 py-4"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-brand-gray-200"/><div className="min-w-0 flex-1"><p className="text-sm">{record.action.replaceAll('.', ' · ')}</p><p className="mt-1 text-xs text-brand-gray-200">{record.actor?.displayName || 'System'} {record.targetType ? `· ${record.targetType}` : ''} {record.targetId ? `· ${record.targetId}` : ''}</p></div><time className="shrink-0 text-xs text-brand-gray-200">{new Date(record.createdAt).toLocaleString()}</time></article>)}</div> : null}</section></div>;
 }
