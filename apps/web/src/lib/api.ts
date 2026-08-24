@@ -43,18 +43,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// The deployed P0 API returns Prisma-shaped envelopes; this adapter normalizes them until P1 DTOs land.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Raw = Record<string, any>;
+const page = <T>(items: T[]): Paginated<T> => ({ items, nextCursor: null, total: items.length });
+function entity(raw: Raw): Entity { return { id: raw.id, kind: raw.kind, value: raw.value, normalized: raw.normalized ?? raw.value.toLowerCase(), riskScore: raw.findings?.reduce?.((sum: number, finding: Raw) => sum + (finding.score ?? 0), 0) ?? 0, lastEnrichedAt: raw.results?.[0]?.fetchedAt }; }
+function investigation(raw: Raw): Investigation { return { id: raw.id, title: raw.title, description: raw.description ?? undefined, status: raw.status, tags: raw.tags ?? [], owner: raw.owner ?? { id: raw.ownerId, displayName: 'Investigation owner' }, counts: raw.counts ?? { entities: raw._count?.entities ?? raw.entities?.length ?? 0, findings: raw._count?.findings ?? 0, evidence: raw._count?.evidence ?? raw.evidence?.length ?? 0, alerts: raw._count?.alerts ?? raw.alerts?.length ?? 0 }, createdAt: raw.createdAt, updatedAt: raw.updatedAt }; }
+function dossier(raw: Raw): EntityDossier { const source = entity(raw); return { entity: source, notes: raw.notes ?? undefined, findings: (raw.findings ?? []).map((finding: Raw) => ({ ...finding, entityId: finding.entityId ?? source.id, confidence: finding.confidence ?? 1, observedAt: finding.observedAt ?? finding.createdAt, fetchedAt: finding.fetchedAt ?? finding.createdAt })), results: raw.results ?? [], relations: [...(raw.outRelations ?? []).map((relation: Raw) => ({ id: relation.id, source: relation.fromId, target: relation.toId, relation: relation.relation, confidence: relation.confidence, sourceName: relation.source, entity: relation.to ? entity(relation.to) : undefined })), ...(raw.inRelations ?? []).map((relation: Raw) => ({ id: relation.id, source: relation.fromId, target: relation.toId, relation: relation.relation, confidence: relation.confidence, sourceName: relation.source, entity: relation.from ? entity(relation.from) : undefined }))] }; }
+
 export const api = {
   login: (body: { email: string; password: string; totpCode?: string }) => request<AuthTokens>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   register: (body: { email: string; password: string; displayName: string }) => request<{ message: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   logout: (refreshToken: string) => request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
-  investigations: (params = '') => request<Paginated<Investigation>>(`/investigations${params}`),
-  investigation: (id: string) => request<Investigation>(`/investigations/${id}`),
-  createInvestigation: (body: { title: string; description?: string; tags?: string[] }) => request<Investigation>('/investigations', { method: 'POST', body: JSON.stringify(body) }),
-  caseEntities: (id: string) => request<Paginated<CaseEntity>>(`/investigations/${id}/entities`),
-  addEntity: (id: string, body: { kind: EntityKind; value: string; notes?: string }) => request<CaseEntity>(`/investigations/${id}/entities`, { method: 'POST', body: JSON.stringify(body) }),
-  entity: (id: string) => request<EntityDossier>(`/entities/${id}`),
-  entities: (params = '') => request<Paginated<Entity>>(`/entities${params}`),
-  enrich: (id: string, providers?: string[]) => request<{ jobId: string }>(`/entities/${id}/enrichments`, { method: 'POST', body: JSON.stringify({ providers }) }),
+  investigations: async (params = '') => page((await request<Raw[]>(`/investigations${params}`)).map(investigation)),
+  investigation: async (id: string) => investigation(await request<Raw>(`/investigations/${id}`)),
+  createInvestigation: async (body: { title: string; description?: string; tags?: string[] }) => investigation(await request<Raw>('/investigations', { method: 'POST', body: JSON.stringify(body) })),
+  caseEntities: async (id: string): Promise<Paginated<CaseEntity>> => page((await request<Raw>(`/investigations/${id}`)).entities.map((raw: Raw): CaseEntity => ({ id: raw.id, investigationId: id, entity: entity(raw), notes: raw.notes ?? undefined, tags: [], status: 'ACTIVE', addedAt: raw.createdAt }))),
+  addEntity: async (id: string, body: { kind: EntityKind; value: string; notes?: string }) => { const raw = await request<Raw>('/entities', { method: 'POST', body: JSON.stringify({ ...body, investigationId: id }) }); return { id: raw.id, investigationId: id, entity: entity(raw), notes: raw.notes ?? undefined, tags: [], status: 'ACTIVE' as const, addedAt: raw.createdAt }; },
+  entity: async (id: string) => dossier(await request<Raw>(`/entities/${id}`)),
+  entities: async (params = '') => page((await request<Raw[]>(`/entities${params}`)).map(entity)),
+  enrich: (id: string, providers?: string[]) => request<{ jobId: string }>('/enrichment', { method: 'POST', body: JSON.stringify({ entityId: id, providers }) }),
   providers: () => request<Provider[]>('/providers'),
   evidence: (investigationId: string) => request<Paginated<Evidence>>(`/investigations/${investigationId}/evidence`),
   uploadEvidence: (investigationId: string, file: File) => { const form = new FormData(); form.append('file', file); return request<Evidence>(`/investigations/${investigationId}/evidence/files`, { method: 'POST', body: form }); },
