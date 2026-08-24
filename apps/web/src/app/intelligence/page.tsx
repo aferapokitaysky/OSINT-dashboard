@@ -98,7 +98,7 @@ export default function IntelligencePage() {
           </div>
           <h3 className="title-serif text-xl mb-3">Audit-Ready</h3>
           <p className="text-xs text-brand-gray-300 leading-relaxed">
-            Every search is logged in the permanent audit trail with the operator's ID, ensuring chain of custody for all gathered data.
+            Every search is logged in the permanent audit trail with the operator&apos;s ID, ensuring chain of custody for all gathered data.
           </p>
         </div>
       </div>
