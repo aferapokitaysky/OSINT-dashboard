@@ -7,7 +7,7 @@ import { Filter, Search } from 'lucide-react';
 import { api, EntityKind } from '@/lib/api';
 import { Badge, EmptyState, QueryError, Skeleton } from '@/components/ui/primitives';
 
-const kinds: EntityKind[] = ['IP', 'DOMAIN', 'URL', 'EMAIL', 'HASH', 'USERNAME', 'CRYPTO_WALLET', 'PERSON', 'COMPANY'];
+const kinds: EntityKind[] = ['IP', 'DOMAIN', 'URL', 'EMAIL', 'HASH', 'USERNAME', 'PHONE', 'CRYPTO_WALLET', 'ASN', 'PERSON', 'COMPANY', 'SOCIAL_PROFILE'];
 
 export default function EntitiesPage() {
   const [query, setQuery] = useState(''); const [kind, setKind] = useState<EntityKind | 'ALL'>('ALL');
