@@ -13,7 +13,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET') || 'replace_me_with_random_48_byte_secret',
+      // Guaranteed present by validateEnv() at bootstrap (app.module.ts).
+      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET')!,
     });
   }
 
