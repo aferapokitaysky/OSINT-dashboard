@@ -1,0 +1,11 @@
+import { cn } from '@/lib/utils';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
+export function Button({ className, loading, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) {
+  return <button className={cn('inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45', className)} disabled={loading || props.disabled} {...props}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}{children}</button>;
+}
+export function Badge({ value, className }: { value: string; className?: string }) { return <span className={cn('rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100', className)}>{value.replaceAll('_', ' ')}</span>; }
+export function SeverityBadge({ severity }: { severity: string }) { const colors: Record<string, string> = { CRITICAL: 'border-red-400/40 bg-red-500/10 text-red-300', HIGH: 'border-orange-400/40 bg-orange-500/10 text-orange-300', MEDIUM: 'border-amber-400/40 bg-amber-500/10 text-amber-200', LOW: 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200', INFO: 'border-white/15 bg-white/5 text-brand-gray-100' }; return <Badge value={severity} className={colors[severity]}/>; }
+export function EmptyState({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) { return <div className="glass-panel flex min-h-64 flex-col items-center justify-center px-6 text-center"><div className="mb-4 rounded-full border border-white/10 bg-white/5 p-3"><AlertCircle className="h-5 w-5 text-brand-gray-100" /></div><h2 className="title-serif text-2xl">{title}</h2><p className="mt-2 max-w-md text-sm leading-6 text-brand-gray-200">{description}</p>{action && <div className="mt-6">{action}</div>}</div>; }
+export function QueryError({ error }: { error: Error }) { return <div className="rounded-2xl border border-red-400/25 bg-red-500/10 p-5 text-sm text-red-100"><p className="font-bold">Couldn’t load this data</p><p className="mt-1 text-red-100/75">{error.message}</p></div>; }
+export function Skeleton({ className }: { className?: string }) { return <div className={cn('animate-pulse rounded-xl bg-white/5', className)} />; }

@@ -35,7 +35,6 @@
   }
   body {
     @apply bg-background text-foreground font-mono antialiased overflow-x-hidden;
-    cursor: none;
   }
 }
 
@@ -91,7 +90,7 @@
   animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ─── Custom Cursor ─── */
+/* ─── Optional custom cursor ─── */
 #cursor-dot {
   @apply fixed w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[9999] transition-[width,height] duration-200 -translate-x-1/2 -translate-y-1/2;
 }
@@ -102,6 +101,10 @@
 
 body.hovering #cursor-dot { @apply w-2.5 h-2.5; }
 body.hovering #cursor-ring { @apply w-12 h-12 border-white/60; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
 
 @keyframes scan {
   from { top: 0%; opacity: 0; }
