@@ -2,7 +2,7 @@ export type EntityKind = 'EMAIL' | 'USERNAME' | 'DOMAIN' | 'IP' | 'PHONE' | 'CRY
 export type Severity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type ProviderStatus = 'OK' | 'NOT_FOUND' | 'ERROR' | 'RATE_LIMITED' | 'DISABLED';
 
-export interface ApiErrorShape { error: { code: string; message: string; details?: unknown[] } }
+export interface ApiErrorShape { error: { code: string; message: string; details?: unknown[]; correlationId?: string } }
 export interface Investigation {
   id: string; title: string; description?: string; status: 'OPEN' | 'IN_PROGRESS' | 'CLOSED' | 'ARCHIVED'; tags: string[];
   owner: { id: string; displayName: string }; counts: { entities: number; findings: number; evidence: number; alerts: number }; createdAt: string; updatedAt: string;
@@ -27,7 +27,7 @@ function token() { return typeof window === 'undefined' ? null : localStorage.ge
 let refreshInFlight: Promise<string | null> | null = null;
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string) { super(message); }
+  constructor(public status: number, public code: string, message: string, public correlationId?: string) { super(message); }
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -47,7 +47,7 @@ async function requestOnce<T>(path: string, init: RequestInit, canRefresh: boole
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as ApiErrorShape | null;
-    throw new ApiError(response.status, payload?.error?.code ?? `HTTP_${response.status}`, payload?.error?.message ?? 'Request failed. Please try again.');
+    throw new ApiError(response.status, payload?.error?.code ?? `HTTP_${response.status}`, payload?.error?.message ?? 'Request failed. Please try again.', payload?.error?.correlationId);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
