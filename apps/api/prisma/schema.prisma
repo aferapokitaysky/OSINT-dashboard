@@ -39,6 +39,7 @@ model User {
   alerts            Alert[]      @relation("AlertAssignee")
   watchlists        Watchlist[]
   createdEntities   Entity[]
+  addedEntities     InvestigationEntity[]
 
   @@index([email])
   @@index([role])
@@ -95,7 +96,7 @@ model Investigation {
   updatedAt    DateTime            @updatedAt
   closedAt     DateTime?
 
-  entities     Entity[]
+  entities     InvestigationEntity[]
   evidence     Evidence[]
   alerts       Alert[]
   graphState   GraphState?
@@ -129,14 +130,17 @@ enum EntityKind {
   URL
 }
 
+// Canonical, investigation-agnostic entity. The same IP/domain/email is
+// frequently relevant to more than one case — enrichment data (findings,
+// provider results, relations) is gathered once per entity and reused
+// everywhere it's attached, instead of being re-fetched and duplicated per
+// investigation. Case-specific data (notes, tags, why it's in *this* case)
+// lives on InvestigationEntity below. See coordination/decisions.md D-001.
 model Entity {
   id              String     @id @default(uuid())
   kind            EntityKind
   value           String
   normalized      String     // canonical lowercase / trimmed
-  notes           String?    @db.Text
-  investigationId String?
-  investigation   Investigation? @relation(fields: [investigationId], references: [id], onDelete: SetNull)
   createdById     String
   createdBy       User       @relation(fields: [createdById], references: [id])
   createdAt       DateTime   @default(now())
@@ -146,11 +150,38 @@ model Entity {
   results         ProviderResult[]
   outRelations    EntityRelation[] @relation("RelationFrom")
   inRelations     EntityRelation[] @relation("RelationTo")
+  investigations  InvestigationEntity[]
 
   @@unique([kind, normalized])
-  @@index([investigationId])
   @@index([createdById])
   @@index([kind])
+}
+
+enum InvestigationEntityStatus {
+  ACTIVE
+  ARCHIVED
+  EXCLUDED
+}
+
+// Join row: which entities are attached to which investigations, plus
+// per-case metadata. This is also the access-control boundary for Entity —
+// see AccessControlService.
+model InvestigationEntity {
+  id              String                     @id @default(uuid())
+  investigationId String
+  investigation   Investigation              @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  entityId        String
+  entity          Entity                     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  notes           String?                    @db.Text
+  tags            String[]                   @default([])
+  status          InvestigationEntityStatus  @default(ACTIVE)
+  addedById       String
+  addedBy         User                       @relation(fields: [addedById], references: [id])
+  addedAt         DateTime                   @default(now())
+
+  @@unique([investigationId, entityId])
+  @@index([investigationId])
+  @@index([entityId])
 }
 
 model EntityRelation {

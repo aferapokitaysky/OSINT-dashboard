@@ -5,7 +5,13 @@ import { GraphService } from './graph.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { Role, createInvestigationSchema, CreateInvestigationDto } from '@osint/types';
+import {
+  Role,
+  attachEntitySchema,
+  AttachEntityDto,
+  createInvestigationSchema,
+  CreateInvestigationDto,
+} from '@osint/types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Request } from 'express';
 
@@ -53,5 +59,24 @@ export class InvestigationsController {
   @ApiOperation({ summary: 'Get investigation details' })
   findOne(@Param('id') id: string, @Req() req: Request) {
     return this.investigationsService.findOne(id, req.user as any);
+  }
+
+  @Post(':id/entities')
+  @Roles(Role.ADMIN, Role.ANALYST)
+  @ApiOperation({ summary: 'Normalize/create and attach an entity to this investigation' })
+  @UsePipes(new ZodValidationPipe(attachEntitySchema))
+  attachEntity(
+    @Param('id') id: string,
+    @Body() dto: AttachEntityDto,
+    @Req() req: Request,
+  ) {
+    return this.investigationsService.attachEntity(id, dto, req.user as any);
+  }
+
+  @Get(':id/entities')
+  @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
+  @ApiOperation({ summary: 'List entities attached to this investigation' })
+  listEntities(@Param('id') id: string, @Req() req: Request) {
+    return this.investigationsService.listEntities(id, req.user as any);
   }
 }

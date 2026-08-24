@@ -15,18 +15,22 @@ export class AccessControlService {
     return investigation?.ownerId === user.id;
   }
 
-  // Entity has no owner of its own yet (see coordination/decisions.md D-001) — access is
-  // inherited from the investigation it's attached to, falling back to whoever created it
-  // for entities not yet attached to any investigation.
+  // Entity is canonical and has no owner of its own (see
+  // coordination/decisions.md D-001) — access is inherited from every
+  // investigation it's attached to via InvestigationEntity, falling back to
+  // whoever created it for entities not (yet) attached to any investigation.
   async canAccessEntity(user: SessionUser, entityId: string): Promise<boolean> {
     if (user.role === 'ADMIN') return true;
     const entity = await this.prisma.entity.findUnique({
       where: { id: entityId },
-      select: { createdById: true, investigation: { select: { ownerId: true } } },
+      select: {
+        createdById: true,
+        investigations: { select: { investigation: { select: { ownerId: true } } } },
+      },
     });
     if (!entity) return false;
     if (entity.createdById === user.id) return true;
-    return entity.investigation?.ownerId === user.id;
+    return entity.investigations.some((link) => link.investigation.ownerId === user.id);
   }
 
   investigationAccessWhere(user: SessionUser) {
@@ -37,7 +41,10 @@ export class AccessControlService {
   entityAccessWhere(user: SessionUser) {
     if (user.role === 'ADMIN') return {};
     return {
-      OR: [{ createdById: user.id }, { investigation: { ownerId: user.id } }],
+      OR: [
+        { createdById: user.id },
+        { investigations: { some: { investigation: { ownerId: user.id } } } },
+      ],
     };
   }
 }

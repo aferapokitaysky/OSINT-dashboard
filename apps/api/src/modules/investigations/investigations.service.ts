@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateInvestigationDto, SessionUser } from '@osint/types';
+import { AccessControlService } from '../../common/access-control.service';
+import { AttachEntityDto, CreateInvestigationDto, SessionUser } from '@osint/types';
 
 @Injectable()
 export class InvestigationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessControl: AccessControlService,
+  ) {}
 
   async create(dto: CreateInvestigationDto, user: SessionUser) {
     return this.prisma.investigation.create({
@@ -18,16 +22,12 @@ export class InvestigationsService {
   }
 
   async findAll(user: SessionUser) {
-    // Basic RBAC logic: Viewers see all, or maybe we scope it by team?
-    // For now, analysts see their own, admins see all.
-    const where = user.role === 'ADMIN' ? {} : { ownerId: user.id };
-    
     return this.prisma.investigation.findMany({
-      where,
+      where: this.accessControl.investigationAccessWhere(user),
       orderBy: { updatedAt: 'desc' },
       include: {
         owner: { select: { displayName: true } },
-        _count: { select: { entities: true, evidence: true, alerts: true } }
+        _count: { select: { entities: true, evidence: true, alerts: true } },
       },
     });
   }
@@ -37,7 +37,7 @@ export class InvestigationsService {
       where: { id },
       include: {
         owner: { select: { displayName: true } },
-        entities: { orderBy: { createdAt: 'desc' } },
+        entities: { include: { entity: true }, orderBy: { addedAt: 'desc' } },
         evidence: true,
         alerts: { orderBy: { createdAt: 'desc' } },
       },
@@ -47,10 +47,59 @@ export class InvestigationsService {
       throw new NotFoundException(`Investigation ${id} not found`);
     }
 
-    if (user.role !== 'ADMIN' && investigation.ownerId !== user.id) {
+    const allowed = await this.accessControl.canAccessInvestigation(user, id);
+    if (!allowed) {
       throw new ForbiddenException('Access denied to this investigation');
     }
 
     return investigation;
+  }
+
+  // Upserts the canonical Entity by (kind, normalized) — never moves an
+  // existing entity, only attaches/links it — then upserts the
+  // investigation-specific join row with this case's notes/tags.
+  async attachEntity(investigationId: string, dto: AttachEntityDto, user: SessionUser) {
+    const allowed = await this.accessControl.canAccessInvestigation(user, investigationId);
+    if (!allowed) {
+      throw new ForbiddenException('Access denied to this investigation');
+    }
+
+    const normalized = dto.value.trim().toLowerCase();
+    const entity = await this.prisma.entity.upsert({
+      where: { kind_normalized: { kind: dto.kind as any, normalized } },
+      update: {},
+      create: {
+        kind: dto.kind as any,
+        value: dto.value,
+        normalized,
+        createdById: user.id,
+      },
+    });
+
+    return this.prisma.investigationEntity.upsert({
+      where: { investigationId_entityId: { investigationId, entityId: entity.id } },
+      update: { notes: dto.notes, tags: dto.tags ?? [] },
+      create: {
+        investigationId,
+        entityId: entity.id,
+        notes: dto.notes,
+        tags: dto.tags ?? [],
+        addedById: user.id,
+      },
+      include: { entity: true },
+    });
+  }
+
+  async listEntities(investigationId: string, user: SessionUser) {
+    const allowed = await this.accessControl.canAccessInvestigation(user, investigationId);
+    if (!allowed) {
+      throw new ForbiddenException('Access denied to this investigation');
+    }
+
+    return this.prisma.investigationEntity.findMany({
+      where: { investigationId },
+      orderBy: { addedAt: 'desc' },
+      include: { entity: true },
+    });
   }
 }
