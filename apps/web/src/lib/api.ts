@@ -48,6 +48,7 @@ export const api = {
   caseEntities: (id: string) => request<Paginated<CaseEntity>>(`/investigations/${id}/entities`),
   addEntity: (id: string, body: { kind: EntityKind; value: string; notes?: string }) => request<CaseEntity>(`/investigations/${id}/entities`, { method: 'POST', body: JSON.stringify(body) }),
   entity: (id: string) => request<EntityDossier>(`/entities/${id}`),
+  entities: (params = '') => request<Paginated<Entity>>(`/entities${params}`),
   enrich: (id: string, providers?: string[]) => request<{ jobId: string }>(`/entities/${id}/enrichments`, { method: 'POST', body: JSON.stringify({ providers }) }),
   providers: () => request<Provider[]>('/providers'),
   evidence: (investigationId: string) => request<Paginated<Evidence>>(`/investigations/${investigationId}/evidence`),

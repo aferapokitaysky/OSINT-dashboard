@@ -79,6 +79,14 @@
   @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-brand-gray-300 focus:border-white/30 focus:bg-white/[0.07];
 }
 
+.filter-chip {
+  @apply shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-200 transition hover:bg-white/5 hover:text-white;
+}
+
+.filter-chip-active {
+  @apply bg-white text-black hover:bg-white hover:text-black;
+}
+
 /* ─── Typography ─── */
 .title-serif {
   @apply font-serif font-light tracking-tight;
