@@ -2,12 +2,13 @@
 
 import { ChangeEvent, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { FileUp, FolderOpen, Hash } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Badge, Button, EmptyState, QueryError, Skeleton } from '@/components/ui/primitives';
-import { OsintGraph } from '@/components/dashboard/graph/osint-graph';
+const OsintGraph = dynamic(() => import('@/components/dashboard/graph/osint-graph').then(module => module.OsintGraph), { ssr: false, loading: () => <Skeleton className="h-full"/> });
 
 export default function InvestigationWorkbench() {
   const { id } = useParams<{ id: string }>(); const client = useQueryClient(); const [file, setFile] = useState<File | null>(null);
