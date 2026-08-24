@@ -19,6 +19,7 @@ export interface FileAnalysis { status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FA
 export interface ActivityLog { id: string; action: string; targetType?: string; targetId?: string; actor?: { displayName: string }; createdAt: string; metadata?: Record<string, unknown> }
 export interface AuthTokens { accessToken: string; refreshToken: string; accessTtl: number; refreshTtl: number }
 export interface Paginated<T> { items: T[]; nextCursor: string | null; total: number }
+export interface InvestigationGraph { nodes: Array<{ id: string; label: string; kind: EntityKind; riskScore?: number }>; edges: Array<{ id?: string; source: string; target: string; relation: string; confidence?: number; sourceName?: string }> }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 
@@ -63,6 +64,7 @@ export const api = {
   entity: async (id: string) => dossier(await request<Raw>(`/entities/${id}`)),
   entities: async (params = '') => page((await request<Raw[]>(`/entities${params}`)).map(entity)),
   enrich: (id: string, providers?: string[]) => request<{ jobId: string }>('/enrichment', { method: 'POST', body: JSON.stringify({ entityId: id, providers }) }),
+  graph: (id: string) => request<InvestigationGraph>(`/investigations/${id}/graph`),
   providers: () => request<Provider[]>('/providers'),
   evidence: (investigationId: string) => request<Paginated<Evidence>>(`/investigations/${investigationId}/evidence`),
   uploadEvidence: (investigationId: string, file: File) => { const form = new FormData(); form.append('file', file); return request<Evidence>(`/investigations/${investigationId}/evidence/files`, { method: 'POST', body: form }); },
