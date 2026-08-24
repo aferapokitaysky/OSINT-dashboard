@@ -1,130 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 94%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 94%;
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 94%;
-    --primary: 0 0% 94%;
-    --primary-foreground: 0 0% 3%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 94%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 12%;
-    --ring: 0 0% 80%;
-    --radius: 0.75rem;
+    --background: 184 18% 8%;
+    --foreground: 48 20% 92%;
+    --card: 184 13% 12%;
+    --card-foreground: 48 20% 92%;
+    --popover: 184 13% 12%;
+    --popover-foreground: 48 20% 92%;
+    --primary: 48 20% 92%;
+    --primary-foreground: 184 18% 8%;
+    --secondary: 184 10% 17%;
+    --secondary-foreground: 48 20% 92%;
+    --muted: 184 10% 17%;
+    --muted-foreground: 180 6% 62%;
+    --accent: 41 88% 63%;
+    --accent-foreground: 184 18% 8%;
+    --destructive: 6 76% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 180 9% 22%;
+    --input: 180 9% 22%;
+    --ring: 41 88% 63%;
+    --radius: .5rem;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+  html { background: #101717; }
   body {
-    @apply bg-background text-foreground font-mono antialiased overflow-x-hidden;
+    @apply bg-background text-foreground antialiased overflow-x-hidden;
+    font-family: Arial, Helvetica, sans-serif;
+    background-image: linear-gradient(rgba(233, 229, 213, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(233, 229, 213, .025) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
+  ::selection { background: #e7aa54; color: #101717; }
 }
 
-/* ─── Grain Effect ─── */
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 256px;
-}
-
-/* ─── Glassmorphism ─── */
 .glass-panel {
-  background: rgba(8, 8, 8, 0.7);
-  backdrop-filter: blur(36px) saturate(200%);
-  -webkit-backdrop-filter: blur(36px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 28px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    inset 0 -1px 0 rgba(0,0,0,0.4),
-    0 20px 60px rgba(0,0,0,0.55);
-}
-
-.glass-nav {
-  background: rgba(8, 8, 8, 0.7);
-  backdrop-filter: blur(36px) saturate(200%);
-  -webkit-backdrop-filter: blur(36px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 9999px;
-  padding: 1rem 2rem;
-  box-shadow: 
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    0 20px 60px rgba(0,0,0,0.55);
+  background: #162020;
+  border: 1px solid #2b3938;
+  border-radius: 10px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 12px 30px rgba(0,0,0,.16);
 }
 
 .field {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-brand-gray-300 focus:border-white/30 focus:bg-white/[0.07];
+  @apply w-full rounded-md border border-white/10 bg-black/15 px-3 py-3 text-sm text-white outline-none transition placeholder:text-brand-gray-200 focus:border-amber-300 focus:bg-black/25;
 }
 
 .filter-chip {
-  @apply shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-200 transition hover:bg-white/5 hover:text-white;
+  @apply shrink-0 rounded-md border border-transparent px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100 transition hover:border-white/10 hover:bg-white/5 hover:text-white;
 }
 
-.filter-chip-active {
-  @apply bg-white text-black hover:bg-white hover:text-black;
-}
+.filter-chip-active { @apply border-amber-300/50 bg-amber-300 text-black hover:bg-amber-300 hover:text-black; }
 
-/* ─── Typography ─── */
 .title-serif {
-  @apply font-serif font-light tracking-tight;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -.035em;
 }
 
-/* ─── Animations ─── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.eyebrow {
+  color: #e7aa54;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
 }
 
-.animate-fade-up {
-  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.field-label {
+  color: #a9b5b2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
-/* ─── Optional custom cursor ─── */
-#cursor-dot {
-  @apply fixed w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[9999] transition-[width,height] duration-200 -translate-x-1/2 -translate-y-1/2;
-}
-
-#cursor-ring {
-  @apply fixed w-8 h-8 border border-white/30 rounded-full pointer-events-none z-[9998] transition-[width,height,border-color] duration-300 -translate-x-1/2 -translate-y-1/2;
-}
-
-body.hovering #cursor-dot { @apply w-2.5 h-2.5; }
-body.hovering #cursor-ring { @apply w-12 h-12 border-white/60; }
+.animate-fade-up { animation: fadeUp .35s ease-out both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-}
-
-@keyframes scan {
-  from { top: 0%; opacity: 0; }
-  5% { opacity: 0.5; }
-  95% { opacity: 0.5; }
-  to { top: 100%; opacity: 0; }
-}
-
-.animate-scan {
-  animation: scan 4s linear infinite;
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
