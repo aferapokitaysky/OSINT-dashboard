@@ -11,7 +11,10 @@ interface OsintGraphProps {
 export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const nodeClickRef = useRef(onNodeClick);
   const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => { nodeClickRef.current = onNodeClick; }, [onNodeClick]);
 
   useEffect(() => {
     let isMounted = true;
@@ -29,7 +32,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
 
         const cy = cytoscape({
           container: containerRef.current,
-          elements: elements,
+          elements: [],
           boxSelectionEnabled: false,
           style: [
             {
@@ -105,7 +108,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
         });
 
         cy.on('tap', 'node', (evt) => {
-          onNodeClick?.(evt.target.id());
+          nodeClickRef.current?.(evt.target.id());
         });
 
         cyRef.current = cy;
