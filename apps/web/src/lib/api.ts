@@ -24,24 +24,50 @@ export interface InvestigationGraph { nodes: Array<{ id: string; label: string; 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 
 function token() { return typeof window === 'undefined' ? null : localStorage.getItem('osint.access-token'); }
+let refreshInFlight: Promise<string | null> | null = null;
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return requestOnce<T>(path, init, true);
+}
+
+async function requestOnce<T>(path: string, init: RequestInit, canRefresh: boolean): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   const accessToken = token();
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   const response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  if (response.status === 401 && canRefresh && !path.startsWith('/auth/')) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return requestOnce<T>(path, init, false);
+  }
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as ApiErrorShape | null;
     throw new ApiError(response.status, payload?.error?.code ?? `HTTP_${response.status}`, payload?.error?.message ?? 'Request failed. Please try again.');
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refreshToken = localStorage.getItem('osint.refresh-token');
+      if (!refreshToken) return null;
+      const response = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ refreshToken }) });
+      if (!response.ok) { localStorage.removeItem('osint.access-token'); localStorage.removeItem('osint.refresh-token'); return null; }
+      const payload = await response.json() as AuthTokens;
+      localStorage.setItem('osint.access-token', payload.accessToken);
+      localStorage.setItem('osint.refresh-token', payload.refreshToken);
+      return payload.accessToken;
+    })().finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
 }
 
 // The deployed P0 API returns Prisma-shaped envelopes; this adapter normalizes them until P1 DTOs land.
