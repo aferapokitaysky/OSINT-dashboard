@@ -16,8 +16,9 @@ import {
 import { cn } from '@/lib/utils';
 import { BackgroundOrbs } from '@/components/ui/design/background-orbs';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/components/providers';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/' },
@@ -30,7 +31,12 @@ const navItems = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { session, ready, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => { if (ready && !session && pathname !== '/login') router.replace('/login'); }, [pathname, ready, router, session]);
+  if (pathname === '/login') return <>{children}</>;
+  if (!ready || !session) return <main className="grid min-h-screen place-items-center bg-brand-black text-sm text-brand-gray-200">Securing workspace…</main>;
   return (
     <div className="min-h-screen bg-brand-black text-brand-white relative grain">
       <BackgroundOrbs />
@@ -65,7 +71,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-6 border-t border-white/5">
-          <button className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-brand-gray-200 hover:bg-white/5 hover:text-white transition-all duration-300">
+          <button onClick={() => { void signOut().then(() => router.replace('/login')); }} className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-brand-gray-200 hover:bg-white/5 hover:text-white transition-all duration-300">
             <LogOut className="w-4 h-4" />
             <span className="text-[11px] uppercase tracking-[0.15em]">Sign Out</span>
           </button>
@@ -94,7 +100,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Bell className="w-4 h-4" />
             </button>
 
-            <div className="w-10 h-10 glass-panel flex items-center justify-center hover:border-white/20 transition-all">
+            <div className="w-10 h-10 glass-panel flex items-center justify-center hover:border-white/20 transition-all" title={session.email}>
               <UserIcon className="w-5 h-5" />
             </div>
           </div>

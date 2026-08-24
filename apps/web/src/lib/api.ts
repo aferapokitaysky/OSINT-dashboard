@@ -17,6 +17,7 @@ export interface Provider { name: string; displayName: string; supports: EntityK
 export interface Evidence { id: string; title: string; kind: 'file' | 'note' | 'link'; mimeType?: string; sizeBytes?: number; sha256?: string; createdAt: string; uploader?: { displayName: string }; analysis?: FileAnalysis }
 export interface FileAnalysis { status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'UNSUPPORTED'; detectedMime?: string; sha256?: string; sha1?: string; md5?: string; metadata?: Record<string, unknown>; warnings?: string[]; analyzedAt?: string }
 export interface ActivityLog { id: string; action: string; targetType?: string; targetId?: string; actor?: { displayName: string }; createdAt: string; metadata?: Record<string, unknown> }
+export interface AuthTokens { accessToken: string; refreshToken: string; accessTtl: number; refreshTtl: number }
 export interface Paginated<T> { items: T[]; nextCursor: string | null; total: number }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
@@ -43,6 +44,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  login: (body: { email: string; password: string; totpCode?: string }) => request<AuthTokens>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  register: (body: { email: string; password: string; displayName: string }) => request<{ message: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+  logout: (refreshToken: string) => request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   investigations: (params = '') => request<Paginated<Investigation>>(`/investigations${params}`),
   investigation: (id: string) => request<Investigation>(`/investigations/${id}`),
   createInvestigation: (body: { title: string; description?: string; tags?: string[] }) => request<Investigation>('/investigations', { method: 'POST', body: JSON.stringify(body) }),
