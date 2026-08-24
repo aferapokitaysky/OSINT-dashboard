@@ -127,37 +127,69 @@ export interface RelatedEntity {
   confidence: number;
 }
 
+export const severitySchema = z.enum(['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
+export type Severity = z.infer<typeof severitySchema>;
+
 export interface RiskSignal {
   type: string;
-  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: Severity;
   description: string;
   score: number;
 }
 
 // ============================================================
 // WebSocket events
+//
+// Namespace `/events`, Socket.IO path `/ws`. JWT goes in the Socket.IO auth
+// handshake (`io(url, { auth: { token } })`); the server assigns rooms itself
+// after checking access — clients never pick a raw room string. See
+// coordination/api-contract.md for the authoritative version of this table.
 // ============================================================
 
 export const WsEvent = {
   EnrichmentStarted: 'enrichment.started',
+  EnrichmentProviderCompleted: 'enrichment.provider.completed',
   EnrichmentProgress: 'enrichment.progress',
-  EnrichmentResult: 'enrichment.result',
-  EnrichmentDone: 'enrichment.done',
+  EnrichmentCompleted: 'enrichment.completed',
   AlertCreated: 'alert.created',
-  ActivityCreated: 'activity.created',
 } as const;
 export type WsEvent = (typeof WsEvent)[keyof typeof WsEvent];
 
-export interface WsEnrichmentResultPayload {
-  entityId: string;
+export interface WsEnrichmentStartedPayload {
   jobId: string;
-  result: ProviderResultEnvelope;
+  entityId: string;
+  providers: string[];
 }
 
-export interface WsEnrichmentDonePayload {
-  entityId: string;
+export interface WsEnrichmentProviderCompletedPayload {
   jobId: string;
-  totalProviders: number;
-  successCount: number;
-  errorCount: number;
+  entityId: string;
+  provider: string;
+  status: ProviderStatus;
+  resultId: string | null;
+  findingCount: number;
+  relationCount: number;
+}
+
+export interface WsEnrichmentProgressPayload {
+  jobId: string;
+  entityId: string;
+  completed: number;
+  total: number;
+}
+
+export type EnrichmentOutcome = 'completed' | 'partial' | 'failed';
+
+export interface WsEnrichmentCompletedPayload {
+  jobId: string;
+  entityId: string;
+  status: EnrichmentOutcome;
+  completedAt: string;
+}
+
+export interface WsAlertCreatedPayload {
+  alertId: string;
+  investigationId: string | null;
+  severity: Severity;
+  title: string;
 }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './modules/prisma/prisma.module';
+import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EntitiesModule } from './modules/entities/entities.module';
 import { InvestigationsModule } from './modules/investigations/investigations.module';
@@ -23,6 +24,7 @@ import { EventsModule } from './modules/events/events.module';
       inject: [ConfigService],
     }),
     PrismaModule,
+    CommonModule,
     AuthModule,
     EntitiesModule,
     InvestigationsModule,
