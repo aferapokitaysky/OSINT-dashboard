@@ -13,16 +13,16 @@ export class ProvidersService {
     private readonly accessControl: AccessControlService,
   ) {}
 
-  async requestEnrichment(dto: EnrichmentRequestDto, user: SessionUser) {
+  async requestEnrichment(entityId: string, dto: EnrichmentRequestDto, user: SessionUser) {
     const entity = await this.prisma.entity.findUnique({
-      where: { id: dto.entityId },
+      where: { id: entityId },
     });
 
     if (!entity) {
-      throw new NotFoundException(`Entity ${dto.entityId} not found`);
+      throw new NotFoundException(`Entity ${entityId} not found`);
     }
 
-    const allowed = await this.accessControl.canAccessEntity(user, dto.entityId);
+    const allowed = await this.accessControl.canAccessEntity(user, entityId);
     if (!allowed) {
       throw new ForbiddenException('Access denied to this entity');
     }

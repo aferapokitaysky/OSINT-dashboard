@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessControlService } from '../../common/access-control.service';
-import { CreateEntityDto, SessionUser } from '@osint/types';
+import { SessionUser } from '@osint/types';
 
 @Injectable()
 export class EntitiesService {
@@ -10,51 +10,39 @@ export class EntitiesService {
     private readonly accessControl: AccessControlService,
   ) {}
 
-  async create(dto: CreateEntityDto, user: SessionUser) {
-    const normalized = dto.value.trim().toLowerCase();
-    
-    // Upsert or create
-    return this.prisma.entity.upsert({
-      where: {
-        kind_normalized: {
-          kind: dto.kind as any,
-          normalized,
-        },
-      },
-      update: {
-        notes: dto.notes,
-        investigationId: dto.investigationId,
-      },
-      create: {
-        kind: dto.kind as any,
-        value: dto.value,
-        normalized,
-        notes: dto.notes,
-        investigationId: dto.investigationId,
-        createdById: user.id,
-      },
-    });
-  }
-
+  // No investigationId filter: the cross-case registry view, scoped to
+  // whatever the caller may access. With one: the entities attached to that
+  // specific investigation (case-specific notes/tags included).
   async findAll(user: SessionUser, investigationId?: string) {
     if (investigationId) {
       const allowed = await this.accessControl.canAccessInvestigation(user, investigationId);
       if (!allowed) {
         throw new ForbiddenException('Access denied to this investigation');
       }
+
+      const links = await this.prisma.investigationEntity.findMany({
+        where: { investigationId },
+        orderBy: { addedAt: 'desc' },
+        include: {
+          entity: { include: { createdBy: { select: { displayName: true } } } },
+        },
+      });
+      return links.map(({ entity, ...link }) => ({
+        ...entity,
+        investigationLink: {
+          notes: link.notes,
+          tags: link.tags,
+          status: link.status,
+          addedAt: link.addedAt,
+        },
+      }));
     }
 
-    const where = investigationId
-      ? { investigationId }
-      : this.accessControl.entityAccessWhere(user);
-
     return this.prisma.entity.findMany({
-      where,
+      where: this.accessControl.entityAccessWhere(user),
       orderBy: { createdAt: 'desc' },
       include: {
-        createdBy: {
-          select: { displayName: true },
-        },
+        createdBy: { select: { displayName: true } },
       },
     });
   }
@@ -72,6 +60,9 @@ export class EntitiesService {
         },
         inRelations: {
           include: { from: true },
+        },
+        investigations: {
+          include: { investigation: { select: { id: true, title: true, status: true } } },
         },
       },
     });

@@ -81,14 +81,6 @@ export interface SessionUser {
 // Entity / Investigation / Finding DTOs
 // ============================================================
 
-export const createEntitySchema = z.object({
-  kind: entityKindSchema,
-  value: z.string().min(1).max(512),
-  investigationId: z.string().uuid().optional(),
-  notes: z.string().max(4000).optional(),
-});
-export type CreateEntityDto = z.infer<typeof createEntitySchema>;
-
 export const createInvestigationSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(4000).optional(),
@@ -96,8 +88,23 @@ export const createInvestigationSchema = z.object({
 });
 export type CreateInvestigationDto = z.infer<typeof createInvestigationSchema>;
 
+// Entities are canonical and shared across investigations (see
+// coordination/decisions.md D-001) — there is no bare "create an entity"
+// operation any more. Attaching one to an investigation upserts the
+// canonical Entity by (kind, normalized) and links it via
+// InvestigationEntity, which is where case-specific notes/tags live.
+export const investigationEntityStatusSchema = z.enum(['ACTIVE', 'ARCHIVED', 'EXCLUDED']);
+export type InvestigationEntityStatus = z.infer<typeof investigationEntityStatusSchema>;
+
+export const attachEntitySchema = z.object({
+  kind: entityKindSchema,
+  value: z.string().min(1).max(512),
+  notes: z.string().max(4000).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+});
+export type AttachEntityDto = z.infer<typeof attachEntitySchema>;
+
 export const enrichmentRequestSchema = z.object({
-  entityId: z.string().uuid(),
   providers: z.array(z.string().min(1)).optional(),
 });
 export type EnrichmentRequestDto = z.infer<typeof enrichmentRequestSchema>;

@@ -2,6 +2,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
+  OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
   ConnectedSocket,
@@ -33,7 +34,7 @@ interface SubscribeBody {
     credentials: true,
   },
 })
-export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -46,24 +47,41 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly configService: ConfigService,
   ) {}
 
-  async handleConnection(client: AuthenticatedSocket) {
-    try {
-      const token = this.extractToken(client);
-      if (!token) throw new Error('Missing token');
+  // Auth lives in Socket.IO connection middleware (server.use), not in
+  // handleConnection: handleConnection is a Nest lifecycle hook that fires
+  // *after* the client already sees "connect" and can already emit
+  // messages, so an async check there (JWT verify + a DB lookup) races
+  // against the client's first message. Middleware registered via
+  // server.use() genuinely blocks the handshake until next() is called, so
+  // client.data.user is guaranteed to be set before any handler runs.
+  afterInit(server: Server) {
+    server.use((socket: AuthenticatedSocket, next: (err?: Error) => void) => {
+      this.authenticate(socket)
+        .then((user) => {
+          socket.data.user = user;
+          next();
+        })
+        .catch((err: Error) => {
+          this.logger.warn(`Rejected WS connection ${socket.id}: ${err.message}`);
+          next(new Error('Unauthorized'));
+        });
+    });
+  }
 
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      });
-      const user = await this.authService.validateUser(payload);
-      if (!user) throw new Error('Invalid or inactive user');
+  private async authenticate(client: Socket): Promise<SessionUser> {
+    const token = this.extractToken(client);
+    if (!token) throw new Error('Missing token');
 
-      client.data.user = user;
-      this.logger.log(`Client connected: ${client.id} (${user.email})`);
-    } catch (err) {
-      this.logger.warn(`Rejected WS connection ${client.id}: ${(err as Error).message}`);
-      client.emit('error', { message: 'Unauthorized' });
-      client.disconnect(true);
-    }
+    const payload = this.jwtService.verify(token, {
+      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+    });
+    const user = await this.authService.validateUser(payload);
+    if (!user) throw new Error('Invalid or inactive user');
+    return user;
+  }
+
+  handleConnection(client: AuthenticatedSocket) {
+    this.logger.log(`Client connected: ${client.id} (${client.data.user?.email})`);
   }
 
   handleDisconnect(client: AuthenticatedSocket) {
