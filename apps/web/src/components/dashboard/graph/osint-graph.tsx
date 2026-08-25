@@ -55,22 +55,16 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
             },
             {
               selector: 'node[kind="IP"]',
-              style: { 
+              style: {
                 'border-color': '#ff3e3e', 
                 'background-color': '#1a0a0a',
-                'shadow-blur': 10,
-                'shadow-color': '#ff3e3e',
-                'shadow-opacity': 0.2
               }
             },
             {
               selector: 'node[kind="DOMAIN"]',
-              style: { 
+              style: {
                 'border-color': '#00f2ff', 
                 'background-color': '#0a1a1a',
-                'shadow-blur': 10,
-                'shadow-color': '#00f2ff',
-                'shadow-opacity': 0.2
               }
             },
             {
@@ -102,7 +96,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
                 'color': '#fff',
               }
             }
-          ],
+          ] as unknown as cytoscape.CytoscapeOptions['style'],
           layout: {
             name: 'cose',
             animate: false, // Disable initial animation to avoid renderer issues
@@ -152,7 +146,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
     
     try {
       layout.run();
-    } catch (e) {
+    } catch {
       // Ignore layout errors during rapid updates
     }
   }, [elements, isReady]);

@@ -4,6 +4,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProviderRegistry } from './provider.registry';
 import { EventsGateway } from '../events/events.gateway';
+import {
+  EnrichmentOutcome,
+  WsEnrichmentCompletedPayload,
+  WsEnrichmentProgressPayload,
+  WsEnrichmentProviderCompletedPayload,
+  WsEnrichmentStartedPayload,
+  WsEvent,
+} from '@osint/types';
 
 @Processor('enrichment')
 @Injectable()
@@ -21,32 +29,37 @@ export class EnrichmentProcessor extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     this.logger.log(`Processing enrichment job ${job.id} for entity ${job.data.entityId}`);
     const { entityId, entityKind, value, requestedProviders } = job.data;
-
-    // Room name for this specific entity enrichment
+    const jobId = String(job.id);
     const room = `entity:${entityId}`;
-    this.eventsGateway.emitToRoom(room, 'enrichment.started', { job: job.id, value });
 
     const availableProviders = this.providerRegistry.getProvidersForEntity(entityKind);
-    
-    const providersToRun = requestedProviders 
-      ? availableProviders.filter(p => requestedProviders.includes(p.meta.name))
+    const providersToRun = requestedProviders
+      ? availableProviders.filter((p) => requestedProviders.includes(p.meta.name))
       : availableProviders;
+
+    this.eventsGateway.emitToRoom(room, WsEvent.EnrichmentStarted, {
+      jobId,
+      entityId,
+      providers: providersToRun.map((p) => p.meta.name),
+    } satisfies WsEnrichmentStartedPayload);
 
     if (providersToRun.length === 0) {
       this.logger.warn(`No suitable providers found for ${entityKind} / ${value}`);
+      this.emitCompleted(room, jobId, entityId, 'failed');
       return { successCount: 0, errorCount: 0 };
     }
 
     let successCount = 0;
     let errorCount = 0;
+    let completed = 0;
+    const total = providersToRun.length;
 
     await Promise.allSettled(
       providersToRun.map(async (provider) => {
         try {
           const resultEnvelope = await provider.run({ entityKind, value });
-          
-          // Persist raw result
-          await this.prisma.providerResult.create({
+
+          const providerResult = await this.prisma.providerResult.create({
             data: {
               entityId,
               provider: provider.meta.name,
@@ -58,7 +71,7 @@ export class EnrichmentProcessor extends WorkerHost {
             },
           });
 
-          // Create Findings from riskSignals
+          let findingCount = 0;
           if (resultEnvelope.riskSignals?.length) {
             for (const signal of resultEnvelope.riskSignals) {
               await this.prisma.finding.create({
@@ -72,14 +85,15 @@ export class EnrichmentProcessor extends WorkerHost {
                   description: signal.description,
                 },
               });
+              findingCount++;
             }
           }
 
-          // Create EntityRelations
+          let relationCount = 0;
           if (resultEnvelope.relatedEntities?.length) {
             for (const rel of resultEnvelope.relatedEntities) {
               const relNormalized = rel.value.trim().toLowerCase();
-              
+
               const toEntity = await this.prisma.entity.upsert({
                 where: { kind_normalized: { kind: rel.kind as any, normalized: relNormalized } },
                 update: {},
@@ -98,7 +112,7 @@ export class EnrichmentProcessor extends WorkerHost {
                     toId: toEntity.id,
                     relation: rel.relation,
                     source: provider.meta.name,
-                  }
+                  },
                 },
                 update: { confidence: rel.confidence },
                 create: {
@@ -109,29 +123,59 @@ export class EnrichmentProcessor extends WorkerHost {
                   confidence: rel.confidence,
                 },
               });
+              relationCount++;
             }
           }
 
           successCount++;
-          this.eventsGateway.emitToRoom(room, 'enrichment.provider_done', { 
-            provider: provider.meta.name, 
-            status: resultEnvelope.status 
-          });
+          completed++;
+          this.eventsGateway.emitToRoom(room, WsEvent.EnrichmentProviderCompleted, {
+            jobId,
+            entityId,
+            provider: provider.meta.name,
+            status: resultEnvelope.status,
+            resultId: providerResult.id,
+            findingCount,
+            relationCount,
+          } satisfies WsEnrichmentProviderCompletedPayload);
         } catch (error) {
-          this.logger.error(`Provider ${provider.meta.name} failed:`, error);
+          this.logger.error(`Provider ${provider.meta.name} failed:`, error as Error);
           errorCount++;
-          this.eventsGateway.emitToRoom(room, 'enrichment.provider_error', { 
-            provider: provider.meta.name, 
-            error: String(error) 
-          });
+          completed++;
+          this.eventsGateway.emitToRoom(room, WsEvent.EnrichmentProviderCompleted, {
+            jobId,
+            entityId,
+            provider: provider.meta.name,
+            status: 'ERROR',
+            resultId: null,
+            findingCount: 0,
+            relationCount: 0,
+          } satisfies WsEnrichmentProviderCompletedPayload);
+        } finally {
+          this.eventsGateway.emitToRoom(room, WsEvent.EnrichmentProgress, {
+            jobId,
+            entityId,
+            completed,
+            total,
+          } satisfies WsEnrichmentProgressPayload);
         }
-      })
+      }),
     );
 
     await job.updateProgress(100);
-    this.eventsGateway.emitToRoom(room, 'enrichment.finished', { job: job.id, successCount, errorCount });
+    const outcome: EnrichmentOutcome = successCount === 0 ? 'failed' : errorCount > 0 ? 'partial' : 'completed';
+    this.emitCompleted(room, jobId, entityId, outcome);
     this.logger.log(`Job ${job.id} done. Success: ${successCount}, Errors: ${errorCount}`);
 
     return { totalProviders: providersToRun.length, successCount, errorCount };
+  }
+
+  private emitCompleted(room: string, jobId: string, entityId: string, status: EnrichmentOutcome) {
+    this.eventsGateway.emitToRoom(room, WsEvent.EnrichmentCompleted, {
+      jobId,
+      entityId,
+      status,
+      completedAt: new Date().toISOString(),
+    } satisfies WsEnrichmentCompletedPayload);
   }
 }

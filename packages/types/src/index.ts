@@ -81,14 +81,6 @@ export interface SessionUser {
 // Entity / Investigation / Finding DTOs
 // ============================================================
 
-export const createEntitySchema = z.object({
-  kind: entityKindSchema,
-  value: z.string().min(1).max(512),
-  investigationId: z.string().uuid().optional(),
-  notes: z.string().max(4000).optional(),
-});
-export type CreateEntityDto = z.infer<typeof createEntitySchema>;
-
 export const createInvestigationSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(4000).optional(),
@@ -96,8 +88,23 @@ export const createInvestigationSchema = z.object({
 });
 export type CreateInvestigationDto = z.infer<typeof createInvestigationSchema>;
 
+// Entities are canonical and shared across investigations (see
+// coordination/decisions.md D-001) — there is no bare "create an entity"
+// operation any more. Attaching one to an investigation upserts the
+// canonical Entity by (kind, normalized) and links it via
+// InvestigationEntity, which is where case-specific notes/tags live.
+export const investigationEntityStatusSchema = z.enum(['ACTIVE', 'ARCHIVED', 'EXCLUDED']);
+export type InvestigationEntityStatus = z.infer<typeof investigationEntityStatusSchema>;
+
+export const attachEntitySchema = z.object({
+  kind: entityKindSchema,
+  value: z.string().min(1).max(512),
+  notes: z.string().max(4000).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+});
+export type AttachEntityDto = z.infer<typeof attachEntitySchema>;
+
 export const enrichmentRequestSchema = z.object({
-  entityId: z.string().uuid(),
   providers: z.array(z.string().min(1)).optional(),
 });
 export type EnrichmentRequestDto = z.infer<typeof enrichmentRequestSchema>;
@@ -127,37 +134,69 @@ export interface RelatedEntity {
   confidence: number;
 }
 
+export const severitySchema = z.enum(['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
+export type Severity = z.infer<typeof severitySchema>;
+
 export interface RiskSignal {
   type: string;
-  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: Severity;
   description: string;
   score: number;
 }
 
 // ============================================================
 // WebSocket events
+//
+// Namespace `/events`, Socket.IO path `/ws`. JWT goes in the Socket.IO auth
+// handshake (`io(url, { auth: { token } })`); the server assigns rooms itself
+// after checking access — clients never pick a raw room string. See
+// coordination/api-contract.md for the authoritative version of this table.
 // ============================================================
 
 export const WsEvent = {
   EnrichmentStarted: 'enrichment.started',
+  EnrichmentProviderCompleted: 'enrichment.provider.completed',
   EnrichmentProgress: 'enrichment.progress',
-  EnrichmentResult: 'enrichment.result',
-  EnrichmentDone: 'enrichment.done',
+  EnrichmentCompleted: 'enrichment.completed',
   AlertCreated: 'alert.created',
-  ActivityCreated: 'activity.created',
 } as const;
 export type WsEvent = (typeof WsEvent)[keyof typeof WsEvent];
 
-export interface WsEnrichmentResultPayload {
-  entityId: string;
+export interface WsEnrichmentStartedPayload {
   jobId: string;
-  result: ProviderResultEnvelope;
+  entityId: string;
+  providers: string[];
 }
 
-export interface WsEnrichmentDonePayload {
-  entityId: string;
+export interface WsEnrichmentProviderCompletedPayload {
   jobId: string;
-  totalProviders: number;
-  successCount: number;
-  errorCount: number;
+  entityId: string;
+  provider: string;
+  status: ProviderStatus;
+  resultId: string | null;
+  findingCount: number;
+  relationCount: number;
+}
+
+export interface WsEnrichmentProgressPayload {
+  jobId: string;
+  entityId: string;
+  completed: number;
+  total: number;
+}
+
+export type EnrichmentOutcome = 'completed' | 'partial' | 'failed';
+
+export interface WsEnrichmentCompletedPayload {
+  jobId: string;
+  entityId: string;
+  status: EnrichmentOutcome;
+  completedAt: string;
+}
+
+export interface WsAlertCreatedPayload {
+  alertId: string;
+  investigationId: string | null;
+  severity: Severity;
+  title: string;
 }
