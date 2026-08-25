@@ -19,6 +19,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm api:generate
+      # Workspace packages expose their declarations from dist/. Build the two
+      # dependency layers before running no-emit checks in downstream packages.
+      - run: pnpm --filter @osint/types build
+      - run: pnpm --filter @osint/plugin-sdk build
       - run: pnpm typecheck
       - run: pnpm lint
 
