@@ -84,6 +84,7 @@ All providers are free-tier. Leave the key blank in `.env` to disable a provider
 | HaveIBeenPwned | `HIBP_API_KEY` | $3.50/mo for arbitrary email lookup; free for own email + breach catalog | haveibeenpwned.com |
 | WHOIS | — | unlimited (RDAP) | — |
 | DNS lookup | — | unlimited (A/AAAA/MX/TXT/NS resolution) | — |
+| crt.sh (Certificate Transparency) | — | unlimited, no key — community-run service, can be slow/unavailable under load | crt.sh |
 
 `.env.example` also reserves keys for a few additional providers (`HUNTER_API_KEY`, `INTELX_API_KEY`, `URLSCAN_API_KEY`, `SECURITYTRAILS_API_KEY`, `GREYNOISE_API_KEY`) — these are placeholders for future plugin-sdk integrations and aren't wired to a provider yet.
 
@@ -190,6 +191,7 @@ docker compose up -d --build
 | HaveIBeenPwned | `HIBP_API_KEY` | $3.50/мес за произвольный email-поиск; бесплатно для своего email + каталога утечек | haveibeenpwned.com |
 | WHOIS | — | без ограничений (RDAP) | — |
 | DNS lookup | — | без ограничений (резолвинг A/AAAA/MX/TXT/NS) | — |
+| crt.sh (Certificate Transparency) | — | без ограничений, без ключа — community-сервис, может быть медленным/недоступным под нагрузкой | crt.sh |
 
 В `.env.example` также зарезервированы ключи для нескольких дополнительных провайдеров (`HUNTER_API_KEY`, `INTELX_API_KEY`, `URLSCAN_API_KEY`, `SECURITYTRAILS_API_KEY`, `GREYNOISE_API_KEY`) — это заготовки под будущие интеграции через plugin-sdk, провайдер под них пока не подключён.
 

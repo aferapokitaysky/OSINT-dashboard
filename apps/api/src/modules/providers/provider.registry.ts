@@ -7,6 +7,7 @@ import { VirusTotalProvider } from './integrations/virustotal.provider';
 import { AbuseIpDbProvider } from './integrations/abuseipdb.provider';
 import { WhoisProvider } from './integrations/whois.provider';
 import { DnsProvider } from './integrations/dns.provider';
+import { CrtShProvider } from './integrations/crtsh.provider';
 import { EntityKind } from '@osint/types';
 
 @Injectable()
@@ -30,6 +31,15 @@ export class ProviderRegistry implements OnModuleInit {
     }));
     this.register(new WhoisProvider());
     this.register(new DnsProvider());
+    this.register(new CrtShProvider({
+      // crt.sh 502s/times out under load fairly often (it's a single
+      // community-run Postgres instance, not a hosted API product) — give
+      // it a more forgiving breaker than the default so a rough patch on
+      // their end doesn't take the provider out of rotation for everyone
+      // else's enrichment jobs for the full default cooldown.
+      circuitBreaker: { failureThreshold: 8, cooldownMs: 60_000, halfOpenMaxCalls: 1 },
+      retry: { retries: 2 },
+    }));
   }
 
   private register(provider: BaseProvider) {
