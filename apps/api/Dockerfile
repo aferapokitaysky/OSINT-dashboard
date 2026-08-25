@@ -1,5 +1,11 @@
 # syntax=docker/dockerfile:1
-FROM node:20.11-alpine AS base
+# >=20.18 for process.getBuiltinModule (pdf-parse's bundled pdfjs-dist needs
+# it; node:20.11 predates it and fails at runtime, not at build time).
+FROM node:20-alpine AS base
+# Prisma's prebuilt query engine binary is linked against libssl.1.1, which
+# this Alpine's OpenSSL 3 base doesn't ship — without it the engine .so
+# fails to dlopen at runtime with "Error loading shared library libssl.so.1.1".
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /repo
 

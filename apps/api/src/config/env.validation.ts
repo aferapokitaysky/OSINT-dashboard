@@ -24,6 +24,9 @@ const envSchema = z
 
     CORS_ORIGINS: z.string().min(1).default('http://localhost:3000'),
     LOG_LEVEL: z.string().default('info'),
+
+    EVIDENCE_STORAGE_DIR: z.string().min(1).default('./storage/evidence'),
+    EVIDENCE_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(25 * 1024 * 1024),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

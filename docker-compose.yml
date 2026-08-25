@@ -66,6 +66,8 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       OPENSEARCH_URL: ${OPENSEARCH_URL}
+    volumes:
+      - evidence_storage:/repo/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,3 +113,4 @@ volumes:
   postgres_data:
   redis_data:
   opensearch_data:
+  evidence_storage:

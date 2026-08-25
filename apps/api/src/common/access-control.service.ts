@@ -33,6 +33,18 @@ export class AccessControlService {
     return entity.investigations.some((link) => link.investigation.ownerId === user.id);
   }
 
+  // Evidence belongs to exactly one investigation (unlike Entity) — access
+  // is simply inherited from that investigation.
+  async canAccessEvidence(user: SessionUser, evidenceId: string): Promise<boolean> {
+    if (user.role === 'ADMIN') return true;
+    const evidence = await this.prisma.evidence.findUnique({
+      where: { id: evidenceId },
+      select: { investigation: { select: { ownerId: true } } },
+    });
+    if (!evidence) return false;
+    return evidence.investigation.ownerId === user.id;
+  }
+
   investigationAccessWhere(user: SessionUser) {
     if (user.role === 'ADMIN') return {};
     return { ownerId: user.id };

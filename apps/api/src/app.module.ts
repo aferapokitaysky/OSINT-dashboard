@@ -12,6 +12,7 @@ import { InvestigationsModule } from './modules/investigations/investigations.mo
 import { ProvidersModule } from './modules/providers/providers.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
+import { EvidenceModule } from './modules/evidence/evidence.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { HealthModule } from './modules/health/health.module';
     ProvidersModule,
     EventsModule,
     HealthModule,
+    EvidenceModule,
   ],
   controllers: [],
   providers: [

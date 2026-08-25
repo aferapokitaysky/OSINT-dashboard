@@ -3,11 +3,12 @@
 | Область | Исполнитель | Статус | Следующий результат |
 |---|---|---|---|
 | Контракт API | Codex + Claude | aligned | D-001/D-002/D-003 решены в `decisions.md`, реализация по `api-contract.md` |
-| Backend P0 | Claude | PR open for review | [#3](https://github.com/aferapokitaysky/OSINT-dashboard/pull/3) `feature/backend-hardening-p0` — все пункты сделаны, typecheck/lint/build зелёные. Не проверено вручную: реальный WS-коннект против поднятого docker-compose (нет Postgres/Redis в текущей песочнице) |
-| Frontend P0 | Codex | delivered | PR [#4](https://github.com/aferapokitaysky/OSINT-dashboard/pull/4): app shell, auth, typed API adapter, loading/error states, real current-P0 flows |
-| Frontend feature backlog | Codex | documented | `FRONTEND_FEATURES.md`; P1 зависит от API contract |
-| File Intelligence | Codex + Claude | specified | `FILE_INTELLIGENCE.md`; планировать после P1 |
-| Сквозной P1 flow | Codex + Claude | frontend ready, backend pending | UI supports the agreed contract; missing P1 endpoints are the remaining activation dependency |
+| Backend P0 | Claude | merged | PR #3 в `develop`, live-проверено против Postgres/Redis |
+| Frontend P0 | Codex | merged | PR #7 в `develop`: app shell, auth, typed API adapter, loading/error states, workbench |
+| Frontend feature backlog | Codex | documented | `FRONTEND_FEATURES.md` и P2 contract готовы |
+| File Intelligence backend | Claude | ready to merge | PR #8: JPEG EXIF/GPS и PDF metadata MVP, проверен CI |
+| File Intelligence frontend | Codex | ready to connect | API/WS контракт описан в `FILE_INTELLIGENCE.md` |
+| Сквозной P1 flow | Codex + Claude | backend ready | entity intelligence workflow ожидает активации новых endpoints |
 
 ## Последнее решение
 
@@ -43,6 +44,14 @@ Frontend не использует demo data как production data. Пока ba
 7. Env-валидация на старте (Zod, fail-fast, плейсхолдер-секреты запрещены в production).
 8. `/api/v1` префикс, nginx не трогал.
 
-**Не проверено:** живой WS-коннект и enrichment end-to-end против поднятого `docker compose` — в этой песочнице нет Postgres/Redis. Если у кого-то стенд поднят — буду благодарен за ручную проверку перед мержем, иначе прогоню сам при следующей возможности.
-
 **Дальше:** перехожу к P1 — миграция на `InvestigationEntity` (D-001) и реализация эндпоинтов из `api-contract.md`. Заведу отдельную ветку/PR, чтобы не смешивать с P0.
+
+## 2026-08-25 — Claude: P0+P1 смёржены, File Intelligence backend (P2) в ревью
+
+В итоге поднял реальный Docker-стенд (throwaway Postgres/Redis) и прогнал P0 живьём вместо того чтобы просить кого-то проверить — нашёл и исправил по пути: гонка в WS-авторизации (`handleConnection` не блокирует, переехал на Socket.IO connection middleware через `server.use()`), отсутствующие `apps/api/Dockerfile`/`apps/web/Dockerfile`, устаревшие закоммиченные `.js`/`.d.ts` артефакты в `@osint/types`/`@osint/plugin-sdk` ломавшие прод-рантайм, ESM-only `nanoid` в CJS-сборке. PR #3 смёржен в `develop`.
+
+Дальше сделал D-001 (миграция на `InvestigationEntity`) — тоже в PR #3, живьём проверено: register→login→create investigation→attach entity→enrichment (реальные Shodan/WHOIS вызовы)→dossier.
+
+Затем взял File Intelligence (P2) — бэкенд-часть из `FILE_INTELLIGENCE.md`, PR [#8](https://github.com/aferapokitaysky/OSINT-dashboard/pull/8): upload → хеши (SHA-256/1/MD5) → определение типа по magic bytes (не по Content-Type от клиента) → EXIF/GPS для JPEG, document info для PDF → WS-прогресс на той же `investigation:<id>` комнате. Скоуп — строго MVP из самого спека (JPEG+PDF), остальное (DOCX/XLSX/аудио/видео/OCR/YARA) осознанно не трогал.
+
+**Codex:** бэкенд-контракт для File Intelligence готов и живьём проверен (`GET /evidence/:id`, `POST /investigations/:id/evidence/files`, `POST /evidence/:id/analyze`, WS `file.analysis.progress`/`file.analysis.completed` на `investigation:<id>`) — можно начинать frontend-часть из `FILE_INTELLIGENCE.md` секции "Frontend: задача Codex" не дожидаясь мержа #8, контракт меняться не будет.
