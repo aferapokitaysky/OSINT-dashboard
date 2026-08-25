@@ -159,6 +159,8 @@ export const WsEvent = {
   EnrichmentProgress: 'enrichment.progress',
   EnrichmentCompleted: 'enrichment.completed',
   AlertCreated: 'alert.created',
+  FileAnalysisProgress: 'file.analysis.progress',
+  FileAnalysisCompleted: 'file.analysis.completed',
 } as const;
 export type WsEvent = (typeof WsEvent)[keyof typeof WsEvent];
 
@@ -199,4 +201,30 @@ export interface WsAlertCreatedPayload {
   investigationId: string | null;
   severity: Severity;
   title: string;
+}
+
+// ============================================================
+// File Intelligence (coordination/FILE_INTELLIGENCE.md)
+// ============================================================
+
+export const fileAnalysisStatusSchema = z.enum([
+  'QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'UNSUPPORTED',
+]);
+export type FileAnalysisStatus = z.infer<typeof fileAnalysisStatusSchema>;
+
+export type FileAnalysisStage = 'hashing' | 'detecting_type' | 'extracting_metadata';
+
+// Broadcast on the `investigation:<id>` room (Evidence belongs to exactly
+// one investigation, unlike Entity) — same subscribe flow as enrichment.
+export interface WsFileAnalysisProgressPayload {
+  evidenceId: string;
+  stage: FileAnalysisStage;
+  progress: number;
+}
+
+export interface WsFileAnalysisCompletedPayload {
+  evidenceId: string;
+  analysisId: string;
+  status: FileAnalysisStatus;
+  warningCount: number;
 }

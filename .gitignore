@@ -25,6 +25,9 @@ pnpm-debug.log*
 # prisma
 apps/api/prisma/migrations/dev.db*
 
+# uploaded evidence (local disk storage — see EVIDENCE_STORAGE_DIR)
+apps/api/storage/
+
 # docker
 docker/data
 .volumes

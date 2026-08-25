@@ -269,8 +269,36 @@ model Evidence {
   sizeBytes       Int?
   createdAt       DateTime      @default(now())
 
+  fileAnalysis    FileAnalysis?
+
   @@index([investigationId])
   @@index([sha256])
+}
+
+// ----- File Intelligence (coordination/FILE_INTELLIGENCE.md) -----
+enum FileAnalysisStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  UNSUPPORTED
+}
+
+model FileAnalysis {
+  id           String             @id @default(uuid())
+  evidenceId   String             @unique
+  evidence     Evidence           @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  status       FileAnalysisStatus @default(QUEUED)
+  detectedMime String?            // from magic bytes, not from the client-declared Content-Type/extension
+  sha256       String?
+  sha1         String?
+  md5          String?
+  metadata     Json?              // normalized, type-specific: EXIF/GPS for images, document info for PDFs, ...
+  warnings     Json?              // e.g. declared/detected MIME mismatch, parse errors — String[]
+  analyzedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([status])
 }
 
 // ----- Watchlists & alerts -----
