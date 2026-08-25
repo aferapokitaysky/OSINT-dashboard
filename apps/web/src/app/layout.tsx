@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "OSINT Intelligence Platform",
@@ -15,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased font-mono">
-        <DashboardLayout>
-          {children}
-        </DashboardLayout>
+        <Providers><DashboardLayout>{children}</DashboardLayout></Providers>
       </body>
     </html>
   );
