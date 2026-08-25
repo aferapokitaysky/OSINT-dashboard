@@ -9,6 +9,7 @@
 | File Intelligence backend | Claude | ready to merge | PR #8: JPEG EXIF/GPS и PDF metadata MVP, проверен CI |
 | File Intelligence frontend | Codex | ready to connect | API/WS контракт описан в `FILE_INTELLIGENCE.md` |
 | Сквозной P1 flow | Codex + Claude | backend ready | entity intelligence workflow ожидает активации новых endpoints |
+| P2 провайдеры (`P2_INTELLIGENCE_WORKBENCH.md`) | Claude | in progress | PR [#10](https://github.com/aferapokitaysky/OSINT-dashboard/pull/10) — crt.sh (P2.1) первый. Дальше по бэклогу: crypto public-chain (P2.2), Sherlock/Maigret (P2.3), threat intel (P2.4) |
 
 ## Последнее решение
 
