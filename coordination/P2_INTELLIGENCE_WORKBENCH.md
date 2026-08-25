@@ -61,7 +61,7 @@ Implement providers separately behind one normalized `CRYPTO_WALLET` contract:
 
 ```ts
 type GraphNode = { id: string; label: string; kind: EntityKind; riskScore: number; investigationRefs: Array<{ id: string; title: string; access: 'current' | 'related' }> };
-type GraphEdge = { id: string; source: string; target: string; relation: string; confidence: number; source: string; observedAt?: string; payload?: Record<string, unknown> };
+type GraphEdge = { id: string; source: string; target: string; relation: string; confidence: number; sourceName: string; observedAt?: string; payload?: Record<string, unknown> };
 type GraphResponse = { nodes: GraphNode[]; edges: GraphEdge[]; paths?: Array<{ nodeIds: string[]; edgeIds: string[] }> };
 ```
 

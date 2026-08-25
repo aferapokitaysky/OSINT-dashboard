@@ -87,7 +87,24 @@ type Finding = {
 | `GET` | `/enrichments/:jobId` | Статус и прогресс задачи |
 | `GET` | `/providers` | Доступность, типы сущностей, лимиты и статус провайдеров |
 
-Реализовано в PR #3 (`develop`), кроме одной честной оговорки: `GET /investigations/:id/entities` и `GET /entities` пока без cursor pagination — обычный список, `nextCursor` всегда `null`. `Entity.riskScore`/`lastEnrichedAt` из типа выше тоже не реализованы (нет risk-scoring движка) — не полагайтесь на эти поля в ответе, их там нет.
+Реализовано в PR #3 (`develop`). Cursor pagination на `GET /investigations`, `GET /entities`, `GET /investigations/:id/entities` реализована в PR [#9](https://github.com/aferapokitaysky/OSINT-dashboard/pull/9) — `{items, nextCursor, total}`, query params `?cursor=&limit=` (limit по умолчанию 20, максимум 100). `Entity.riskScore`/`lastEnrichedAt` из типа выше не реализованы (нет risk-scoring движка) — не полагайтесь на эти поля в ответе, их там нет.
+
+## Activity feed
+
+PR [#9](https://github.com/aferapokitaysky/OSINT-dashboard/pull/9). `GET /activity?cursor=&limit=&action=&targetType=` — cursor-paginated audit trail поверх `ActivityLog`. ADMIN видит все записи, остальные роли — только свои (`actorId = текущий пользователь`). Per-investigation фильтрации нет (gap, `targetType` неоднородный — Entity/Investigation/Evidence).
+
+```ts
+type ActivityEntry = {
+  id: string;
+  actorId: string | null;
+  actor: { displayName: string; email: string } | null;
+  action: string; // "investigation.create", "investigation.entity.attach", "enrichment.request", "evidence.upload", ...
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+```
 
 ## Evidence / File Intelligence P2
 
@@ -152,11 +169,15 @@ Namespace `/events`; JWT передаётся в Socket.IO auth handshake. Се�
 
 ## Граф P2
 
-`GET /investigations/:id/graph?depth=1&kinds=IP,DOMAIN&minConfidence=0.7` возвращает только данные для визуализации, а не сохранённые произвольные Cytoscape nodes.
+Реализовано в PR [#9](https://github.com/aferapokitaysky/OSINT-dashboard/pull/9). **Breaking route change**: старый persisted-layout эндпоинт (`{nodes, zoom, pan}` — Cytoscape node positions, не граф-факты) переехал с `GET/POST /investigations/:id/graph` на `GET/POST /investigations/:id/graph/state`. Если фронт уже дёргает старый путь для сохранения расположения узлов — переключить на `/graph/state`, иначе запрос попадёт в новый computed-graph handler и получит другой формат ответа.
+
+`GET /investigations/:id/graph?depth=1&minConfidence=0.7` — computed граф: BFS от сущностей кейса по `EntityRelation` на `depth` хопов (макс. 3), фильтр по `confidence >= minConfidence`. `kinds=` и `from=`/`to=` из более ранней черновой спеки — **не реализовано**, не полагайтесь.
 
 ```ts
 type InvestigationGraph = {
-  nodes: Array<{ id: string; label: string; kind: Entity['kind']; riskScore: number }>;
-  edges: Array<{ id: string; source: string; target: string; relation: string; confidence: number; sourceName: string }>;
+  nodes: Array<{ id: string; label: string; kind: Entity['kind']; riskScore: number; investigationRefs: [] }>; // riskScore всегда 0, investigationRefs всегда [] — оба gap, см. decisions
+  edges: Array<{ id: string; source: string; target: string; relation: string; confidence: number; sourceName: string; observedAt: string }>;
 };
 ```
+
+`POST /investigations/:id/graph/path` (BFS pathfinding), `GET /entities/:id/cross-investigations`, `GET /investigations/:id/graph/export` — не реализованы.
