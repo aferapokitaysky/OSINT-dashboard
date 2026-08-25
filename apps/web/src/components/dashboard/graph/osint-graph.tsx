@@ -39,9 +39,9 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
             {
               selector: 'node',
               style: {
-                'background-color': '#1d2927',
+                'background-color': '#17253a',
                 'label': 'data(label)',
-                'color': '#d9e1d9',
+                'color': '#dce8f7',
                 'font-family': 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 'font-size': '8px',
                 'text-valign': 'bottom',
@@ -49,10 +49,10 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
                 'width': '24px',
                 'height': '24px',
                 'border-width': 1,
-                'border-color': '#6f817c',
+                'border-color': '#617797',
                 'overlay-opacity': 0,
                 'text-background-opacity': 0.8,
-                'text-background-color': '#111918',
+                'text-background-color': '#101722',
                 'text-background-shape': 'roundrectangle',
                 'text-background-padding': '2px',
               }
@@ -60,40 +60,40 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
             {
               selector: 'node[kind="IP"]',
               style: {
-                'border-color': '#f07060',
-                'background-color': '#2b1918',
+                'border-color': '#ef8074',
+                'background-color': '#321e25',
               }
             },
             {
               selector: 'node[kind="DOMAIN"]',
               style: {
-                'border-color': '#e7b84b',
-                'background-color': '#302919',
+                'border-color': '#62adff',
+                'background-color': '#172b48',
               }
             },
             {
               selector: 'edge',
               style: {
                 'width': 1,
-                'line-color': '#53645f',
-                'target-arrow-color': '#53645f',
+                'line-color': '#526a8c',
+                'target-arrow-color': '#526a8c',
                 'target-arrow-shape': 'vee',
                 'arrow-scale': 0.8,
                 'curve-style': 'taxi',
                 'taxi-direction': 'vertical',
                 'label': 'data(relation)',
                 'font-size': '6px',
-                'color': '#96a7a1',
+                'color': '#a8bbd3',
                 'text-rotation': 'autorotate',
                 'text-background-opacity': 1,
-                'text-background-color': '#111918',
+                'text-background-color': '#101722',
               }
             },
             {
               selector: 'node:selected',
               style: {
                 'border-width': 2,
-                'border-color': '#f5c655',
+                'border-color': '#8bc4ff',
                 'width': '30px',
                 'height': '30px',
                 'font-size': '10px',
@@ -162,7 +162,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
   function downloadPng() {
     const cy = cyRef.current;
     if (!cy) return;
-    const image = cy.png({ full: true, scale: 2, bg: '#111918', output: 'blob' });
+    const image = cy.png({ full: true, scale: 2, bg: '#101722', output: 'blob' });
     if (!(image instanceof Blob)) return;
     const url = URL.createObjectURL(image);
     const anchor = document.createElement('a');
@@ -173,15 +173,15 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
   }
 
   return (
-    <div className="field-panel w-full h-full relative overflow-hidden">
-      <div className="absolute left-0 right-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#162020]/95 px-4 py-3 backdrop-blur-sm">
+    <div className="relative h-full w-full overflow-hidden border border-[#354256] bg-[#101722]">
+      <div className="absolute left-0 right-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[#354256] bg-[#131c2a]/95 px-4 py-3">
         <div className="flex items-center gap-4">
-          <span className="eyebrow">Relationship map</span>
-          <span className="font-mono text-[10px] text-brand-gray-200">{elements.filter(item => 'source' in item.data === false).length} entities · {elements.filter(item => 'source' in item.data).length} links</span>
+          <span className="eyebrow">Relationship map / live layout</span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[#8195b1]">{elements.filter(item => 'source' in item.data === false).length} entities · {elements.filter(item => 'source' in item.data).length} links</span>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={fitGraph} className="inline-flex items-center gap-2 border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100 transition hover:border-amber-300 hover:text-amber-200"><Maximize2 className="h-3.5 w-3.5"/>Fit view</button>
-          <button type="button" onClick={downloadPng} className="inline-flex items-center gap-2 border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100 transition hover:border-amber-300 hover:text-amber-200"><Download className="h-3.5 w-3.5"/>PNG</button>
+          <button type="button" onClick={fitGraph} className="inline-flex items-center gap-2 border border-[#42526a] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#c5d4e7] hover:border-[#62adff]"><Maximize2 className="h-3.5 w-3.5"/>Fit</button>
+          <button type="button" onClick={downloadPng} className="inline-flex items-center gap-2 border border-[#42526a] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#c5d4e7] hover:border-[#62adff]"><Download className="h-3.5 w-3.5"/>Export PNG</button>
         </div>
       </div>
       <div 
@@ -189,10 +189,10 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
         className="w-full h-full opacity-0 transition-opacity duration-300"
         style={{ opacity: isReady ? 1 : 0 }}
       />
-      <div className="absolute bottom-3 left-4 z-20 flex items-center gap-4 border border-white/10 bg-[#111918]/90 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-gray-200">
-        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#e7b84b]"/>Domain</span>
-        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#f07060]"/>IP</span>
-        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#1d2927] ring-1 ring-[#6f817c]"/>Other</span>
+      <div className="absolute bottom-4 left-4 z-20 flex items-center gap-4 border border-[#354256] bg-[#131c2a]/95 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-[#a5b5c9]">
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#62adff]"/>Domain</span>
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#ef8074]"/>IP</span>
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#17253a] ring-1 ring-[#617797]"/>Other</span>
       </div>
     </div>
   );

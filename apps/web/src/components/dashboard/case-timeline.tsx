@@ -1,31 +1,11 @@
-import { CalendarClock, CircleDot } from 'lucide-react';
+import { CalendarClock, CornerDownRight } from 'lucide-react';
 import { ApiError, TimelineEvent } from '@/lib/api';
 import { Skeleton } from '@/components/ui/primitives';
 
-interface CaseTimelineProps {
-  events?: TimelineEvent[];
-  loading?: boolean;
-  error?: Error | null;
-}
+interface Props { events?: TimelineEvent[]; loading?: boolean; error?: Error | null; }
+const tone = (event: TimelineEvent) => event.severity === 'CRITICAL' || event.severity === 'HIGH' ? '#ef7c72' : event.severity === 'MEDIUM' ? '#efb566' : '#62adff';
 
-function eventTone(event: TimelineEvent) {
-  if (event.severity === 'CRITICAL' || event.severity === 'HIGH') return 'bg-red-400';
-  if (event.severity === 'MEDIUM') return 'bg-amber-300';
-  return 'bg-[#8aa39b]';
-}
-
-export function CaseTimeline({ events, loading, error }: CaseTimelineProps) {
-  const feedUnavailable = error instanceof ApiError && error.status === 404;
-
-  return <section className="glass-panel mt-5 p-6">
-    <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
-      <div><p className="eyebrow">Case chronology</p><h2 className="title-serif mt-1 text-3xl">Timeline</h2><p className="mt-2 max-w-2xl text-sm text-brand-gray-200">Evidence, enrichment observations and analyst activity ordered by the time they occurred.</p></div>
-      <span className="font-mono text-[10px] uppercase tracking-wider text-brand-gray-200">UTC normalized</span>
-    </div>
-    {loading && <div className="mt-6 space-y-4">{[1, 2, 3].map(index => <Skeleton key={index} className="h-16"/>)}</div>}
-    {feedUnavailable && <div className="mt-6 border-l-2 border-amber-300 bg-amber-300/5 px-4 py-4 text-sm text-brand-gray-200"><p className="font-medium text-brand-gray-100">Event feed is being connected.</p><p className="mt-1">The workbench is ready for real case events as soon as the timeline service is deployed. No placeholder activity is shown.</p></div>}
-    {!loading && !error && !events?.length && <div className="mt-6 flex items-center gap-3 border border-white/10 bg-black/10 px-4 py-5 text-sm text-brand-gray-200"><CalendarClock className="h-5 w-5 text-amber-200"/>No events have been recorded for this case.</div>}
-    {!loading && !!events?.length && <ol className="mt-6 border-l border-white/15 pl-5">{events.map(event => <li className="relative pb-6 last:pb-0" key={event.id}><span className={`absolute -left-[25px] top-1.5 h-2.5 w-2.5 border-2 border-[#162020] ${eventTone(event)}`}/><div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"><p className="text-sm font-medium">{event.title}</p><time className="font-mono text-[10px] text-brand-gray-200" dateTime={event.occurredAt}>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(event.occurredAt))} UTC</time></div>{event.summary && <p className="mt-1 text-sm leading-6 text-brand-gray-200">{event.summary}</p>}<div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-brand-gray-300">{event.source && <span className="inline-flex items-center gap-1"><CircleDot className="h-3 w-3"/>{event.source}</span>}{event.actor && <span>{event.actor.displayName}</span>}</div></li>)}</ol>}
-    {!feedUnavailable && !!error && <p className="mt-6 border-l-2 border-red-400 px-4 py-2 text-sm text-red-200">Timeline could not be loaded: {error.message}</p>}
-  </section>;
+export function CaseTimeline({ events, loading, error }: Props) {
+  const unavailable = error instanceof ApiError && error.status === 404;
+  return <section className="mt-10 border-t border-[#354256] pt-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Chronology</p><h2 className="title-serif mt-2 text-4xl">Case timeline</h2><p className="mt-3 text-sm text-[#9dafc6]">Observations and analyst actions, normalised to UTC.</p></div><CalendarClock className="h-5 w-5 text-[#62adff]"/></div>{loading && <div className="mt-6 border border-[#354256]">{[1,2,3].map(item => <Skeleton key={item} className="h-16 border-b border-[#354256] last:border-0"/>)}</div>}{unavailable && <div className="mt-6 border-l-2 border-[#efb566] bg-[#2b251c] p-4 text-sm text-[#d8c79f]"><b className="text-[#f0d28b]">Timeline feed is not deployed.</b><p className="mt-1">The workbench will show real events when the case timeline endpoint becomes available.</p></div>}{!loading && !error && !events?.length && <p className="mt-6 border border-[#354256] p-5 text-sm text-[#9dafc6]">No event has been recorded for this case.</p>}{events?.length ? <ol className="mt-6 border border-[#354256]">{events.map((event, index) => <li className="grid grid-cols-[78px_1fr] border-b border-[#354256] last:border-0" key={event.id}><time className="border-r border-[#354256] px-4 py-5 font-mono text-[10px] text-[#7d9ec5]">{new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(event.occurredAt))}</time><div className="relative p-5"><i className="absolute -left-[5px] top-[25px] h-2.5 w-2.5" style={{ background: tone(event) }}/><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-[#e5edf7]">{event.title}</p><span className="font-mono text-[9px] uppercase tracking-wider text-[#7e91ac]">{event.kind}</span></div>{event.summary && <p className="mt-2 text-sm leading-6 text-[#a7b7cb]">{event.summary}</p>}<p className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#8295b1]"><CornerDownRight className="h-3.5 w-3.5"/>{event.source || event.actor?.displayName || `Record ${index + 1}`}</p></div></li>)}</ol> : null}{!unavailable && !!error && <p className="mt-6 border-l-2 border-red-400 p-4 text-sm text-red-200">Timeline could not be loaded: {error.message}</p>}</section>;
 }

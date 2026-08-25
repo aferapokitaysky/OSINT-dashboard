@@ -4,8 +4,8 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "OSINT Intelligence Platform",
-  description: "Advanced intelligence workspace and entity enrichment pipeline",
+  title: "Ledger — OSINT Investigation Workspace",
+  description: "Evidence-led workspace for public-source investigations.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="antialiased font-mono">
+      <body className="antialiased">
         <Providers><DashboardLayout>{children}</DashboardLayout></Providers>
       </body>
     </html>
