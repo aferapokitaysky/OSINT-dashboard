@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
+import { Download, Maximize2 } from 'lucide-react';
 
 interface OsintGraphProps {
   elements: cytoscape.ElementDefinition[];
@@ -11,7 +12,10 @@ interface OsintGraphProps {
 export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const nodeClickRef = useRef(onNodeClick);
   const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => { nodeClickRef.current = onNodeClick; }, [onNodeClick]);
 
   useEffect(() => {
     let isMounted = true;
@@ -29,26 +33,26 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
 
         const cy = cytoscape({
           container: containerRef.current,
-          elements: elements,
+          elements: [],
           boxSelectionEnabled: false,
           style: [
             {
               selector: 'node',
               style: {
-                'background-color': '#000',
+                'background-color': '#1d2927',
                 'label': 'data(label)',
-                'color': '#888',
-                'font-family': 'DM Mono, monospace',
+                'color': '#d9e1d9',
+                'font-family': 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 'font-size': '8px',
                 'text-valign': 'bottom',
                 'text-margin-y': 6,
                 'width': '24px',
                 'height': '24px',
                 'border-width': 1,
-                'border-color': 'rgba(255,255,255,0.15)',
+                'border-color': '#6f817c',
                 'overlay-opacity': 0,
                 'text-background-opacity': 0.8,
-                'text-background-color': '#070707',
+                'text-background-color': '#111918',
                 'text-background-shape': 'roundrectangle',
                 'text-background-padding': '2px',
               }
@@ -56,47 +60,47 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
             {
               selector: 'node[kind="IP"]',
               style: {
-                'border-color': '#ff3e3e', 
-                'background-color': '#1a0a0a',
+                'border-color': '#f07060',
+                'background-color': '#2b1918',
               }
             },
             {
               selector: 'node[kind="DOMAIN"]',
               style: {
-                'border-color': '#00f2ff', 
-                'background-color': '#0a1a1a',
+                'border-color': '#e7b84b',
+                'background-color': '#302919',
               }
             },
             {
               selector: 'edge',
               style: {
                 'width': 1,
-                'line-color': 'rgba(255,255,255,0.08)',
-                'target-arrow-color': 'rgba(255,255,255,0.08)',
+                'line-color': '#53645f',
+                'target-arrow-color': '#53645f',
                 'target-arrow-shape': 'vee',
                 'arrow-scale': 0.8,
                 'curve-style': 'taxi',
                 'taxi-direction': 'vertical',
                 'label': 'data(relation)',
                 'font-size': '6px',
-                'color': 'rgba(255,255,255,0.2)',
+                'color': '#96a7a1',
                 'text-rotation': 'autorotate',
                 'text-background-opacity': 1,
-                'text-background-color': '#070707',
+                'text-background-color': '#111918',
               }
             },
             {
               selector: 'node:selected',
               style: {
                 'border-width': 2,
-                'border-color': '#fff',
+                'border-color': '#f5c655',
                 'width': '30px',
                 'height': '30px',
                 'font-size': '10px',
                 'color': '#fff',
               }
             }
-          ] as unknown as cytoscape.CytoscapeOptions['style'],
+          ],
           layout: {
             name: 'cose',
             animate: false, // Disable initial animation to avoid renderer issues
@@ -105,7 +109,7 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
         });
 
         cy.on('tap', 'node', (evt) => {
-          onNodeClick?.(evt.target.id());
+          nodeClickRef.current?.(evt.target.id());
         });
 
         cyRef.current = cy;
@@ -151,38 +155,45 @@ export function OsintGraph({ elements, onNodeClick }: OsintGraphProps) {
     }
   }, [elements, isReady]);
 
+  function fitGraph() {
+    cyRef.current?.fit(undefined, 56);
+  }
+
+  function downloadPng() {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const image = cy.png({ full: true, scale: 2, bg: '#111918', output: 'blob' });
+    if (!(image instanceof Blob)) return;
+    const url = URL.createObjectURL(image);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'case-relationship-graph.png';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="w-full h-full relative glass-panel overflow-hidden group">
-      {/* HUD Elements */}
-      <div className="absolute inset-0 pointer-events-none border border-white/5 m-4 rounded-[20px] z-10" />
-      
-      <div className="absolute top-8 left-10 z-20 flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-          <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-white opacity-80">
-            Nexus Correlation Engine
-          </span>
+    <div className="field-panel w-full h-full relative overflow-hidden">
+      <div className="absolute left-0 right-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#162020]/95 px-4 py-3 backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <span className="eyebrow">Relationship map</span>
+          <span className="font-mono text-[10px] text-brand-gray-200">{elements.filter(item => 'source' in item.data === false).length} entities · {elements.filter(item => 'source' in item.data).length} links</span>
         </div>
-        <div className="text-[8px] font-mono text-brand-gray-300 ml-4 opacity-50 uppercase tracking-widest">
-          Active Scan: Recursive Depth 4
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={fitGraph} className="inline-flex items-center gap-2 border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100 transition hover:border-amber-300 hover:text-amber-200"><Maximize2 className="h-3.5 w-3.5"/>Fit view</button>
+          <button type="button" onClick={downloadPng} className="inline-flex items-center gap-2 border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-gray-100 transition hover:border-amber-300 hover:text-amber-200"><Download className="h-3.5 w-3.5"/>PNG</button>
         </div>
       </div>
-
-      <div className="absolute bottom-8 right-10 z-20 flex gap-4 text-[8px] font-mono text-brand-gray-300 uppercase tracking-widest opacity-40">
-        <div>X: 42.092</div>
-        <div>Y: 12.001</div>
-        <div>Z: 0.000</div>
-      </div>
-
-      {/* The Graph */}
       <div 
         ref={containerRef} 
-        className="w-full h-full opacity-0 transition-opacity duration-1000"
+        className="w-full h-full opacity-0 transition-opacity duration-300"
         style={{ opacity: isReady ? 1 : 0 }}
       />
-
-      {/* Scanning Line Effect */}
-      <div className="absolute inset-x-0 h-[1px] bg-white/5 top-0 animate-scan pointer-events-none z-10" />
+      <div className="absolute bottom-3 left-4 z-20 flex items-center gap-4 border border-white/10 bg-[#111918]/90 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-gray-200">
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#e7b84b]"/>Domain</span>
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#f07060]"/>IP</span>
+        <span><i className="mr-1.5 inline-block h-2 w-2 bg-[#1d2927] ring-1 ring-[#6f817c]"/>Other</span>
+      </div>
     </div>
   );
 }

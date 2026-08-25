@@ -1,9 +1,13 @@
 'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { KeyRound, ShieldCheck, Wifi } from 'lucide-react';
+import { api } from '@/lib/api';
+import { Badge, QueryError, Skeleton } from '@/components/ui/primitives';
+
 export default function SettingsPage() {
-  return (
-    <div className="max-w-6xl mx-auto pt-12 animate-fade-up">
-      <h1 className="title-serif text-5xl mb-4">System Settings</h1>
-      <p className="text-brand-gray-300">Configure providers, API keys, and user permissions.</p>
-    </div>
-  );
+  const providers = useQuery({ queryKey: ['providers'], queryFn: api.providers });
+  return <div className="mx-auto max-w-6xl animate-fade-up pb-12"><header className="border-b border-white/10 pb-8"><p className="eyebrow">Operational settings / source control</p><h1 className="title-serif mt-3 text-5xl">Sources & access</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-brand-gray-200">Provider secrets stay on the server. This view only reveals availability, supported entity types and current operational state.</p></header>
+    <section className="mt-7 grid gap-5 lg:grid-cols-[1.3fr_.7fr]"><div className="glass-panel p-6"><div className="flex items-center gap-3"><Wifi className="h-5 w-5 text-amber-200"/><div><p className="eyebrow">Intelligence sources</p><h2 className="title-serif mt-1 text-3xl">Provider availability</h2></div></div>{providers.isLoading && <div className="mt-6 space-y-3">{[1,2,3].map(x => <Skeleton key={x} className="h-20"/>)}</div>}{providers.isError && <div className="mt-6"><QueryError error={providers.error}/></div>}{providers.data && <div className="mt-6 divide-y divide-white/10">{providers.data.map(provider => <article className="flex flex-col gap-3 py-4 md:flex-row md:items-center" key={provider.name}><div className="flex-1"><p className="font-medium">{provider.displayName}</p><p className="mt-1 text-xs text-brand-gray-200">{provider.freeTier || 'Usage policy provided by source'} · supports {provider.supports.join(', ')}</p></div><Badge value={provider.enabled ? provider.status || 'READY' : 'DISABLED'}/></article>)}</div>}</div><aside className="space-y-5"><section className="glass-panel p-6"><KeyRound className="h-5 w-5 text-amber-200"/><h2 className="title-serif mt-5 text-2xl">Secrets stay server-side</h2><p className="mt-3 text-sm leading-6 text-brand-gray-200">API keys are never returned to this interface. Administrators configure them through protected deployment settings.</p></section><section className="glass-panel p-6"><ShieldCheck className="h-5 w-5 text-amber-200"/><h2 className="title-serif mt-5 text-2xl">Access is case-scoped</h2><p className="mt-3 text-sm leading-6 text-brand-gray-200">Source results, evidence and live updates are only visible in investigations you can access.</p></section></aside></section>
+  </div>;
 }

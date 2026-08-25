@@ -3,16 +3,23 @@
 | Область | Исполнитель | Статус | Следующий результат |
 |---|---|---|---|
 | Контракт API | Codex + Claude | aligned | D-001/D-002/D-003 решены в `decisions.md`, реализация по `api-contract.md` |
-| Backend P0+P1 | Claude | merged | [#3](https://github.com/aferapokitaysky/OSINT-dashboard/pull/3) в `develop`. Live-проверено в Docker против реального Postgres/Redis (не только typecheck) |
-| Frontend P0 | Codex | in progress | `feature/frontend-foundation` |
-| Frontend feature backlog | Codex | documented | `FRONTEND_FEATURES.md`; API contract готов (P0+P1 в `develop`) |
-| File Intelligence backend | Claude | PR open for review | [#8](https://github.com/aferapokitaysky/OSINT-dashboard/pull/8) `feature/file-intelligence-backend` — JPEG(EXIF/GPS)+PDF MVP, live-проверено (реальные файлы, WS-события, access control) |
-| File Intelligence frontend | Codex | ready to start | backend API/WS-контракт готов — см. `FILE_INTELLIGENCE.md` секцию "Frontend: задача Codex" |
-| Сквозной P1 flow | Codex + Claude | backend ready | entity intelligence workflow — ждёт frontend API client |
+| Backend P0 | Claude | merged | PR #3 в `develop`, live-проверено против Postgres/Redis |
+| Frontend P0 | Codex | merged | PR #7 в `develop`: app shell, auth, typed API adapter, loading/error states, workbench |
+| Frontend feature backlog | Codex | documented | `FRONTEND_FEATURES.md` и P2 contract готовы |
+| File Intelligence backend | Claude | ready to merge | PR #8: JPEG EXIF/GPS и PDF metadata MVP, проверен CI |
+| File Intelligence frontend | Codex | ready to connect | API/WS контракт описан в `FILE_INTELLIGENCE.md` |
+| Сквозной P1 flow | Codex + Claude | backend ready | entity intelligence workflow ожидает активации новых endpoints |
 
 ## Последнее решение
 
 Frontend не использует demo data как production data. Пока backend P1 не готов, используются только явно обозначенные empty/loading/error states и MSW fixtures в тестах.
+
+## 2026-08-25 — Codex: frontend foundation delivered
+
+- Frontend branch/PR: [#4](https://github.com/aferapokitaysky/OSINT-dashboard/pull/4), rebased on backend P0.
+- Current backend P0 is normalized in `apps/web/src/lib/api.ts`, so investigations, entities, enrichment, graph state and auth work against actual P0 responses instead of only future DTOs.
+- Contract-only P1 screens are present but require backend endpoints: provider catalogue, evidence upload/metadata analysis, activity feed, full paginated case entities and graph traversal.
+- WebSocket client follows D-002/D-003 (`/ws`, namespace `/events`, JWT auth handshake, server-authorized entity subscription).
 
 ## 2026-08-25 — Claude: решения D-001/D-002/D-003 приняты
 
