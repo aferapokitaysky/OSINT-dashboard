@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, UsePipes } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, UsePipes } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InvestigationsService } from './investigations.service';
 import { GraphService } from './graph.service';
@@ -25,18 +25,30 @@ export class InvestigationsController {
     private readonly graphService: GraphService,
   ) {}
 
-  @Get(':id/graph')
+  @Get(':id/graph/state')
   @Roles(Role.ANALYST, Role.ADMIN, Role.VIEWER)
-  @ApiOperation({ summary: 'Get investigation graph state' })
-  getGraph(@Param('id') id: string) {
-    return this.graphService.getState(id);
+  @ApiOperation({ summary: 'Get the persisted graph layout (node positions, zoom, pan)' })
+  getGraphState(@Param('id') id: string, @Req() req: Request) {
+    return this.graphService.getState(id, req.user as any);
   }
 
-  @Post(':id/graph')
+  @Post(':id/graph/state')
   @Roles(Role.ANALYST, Role.ADMIN)
-  @ApiOperation({ summary: 'Save investigation graph state' })
-  saveGraph(@Param('id') id: string, @Body() data: any) {
-    return this.graphService.saveState(id, data);
+  @ApiOperation({ summary: 'Save the graph layout (node positions, zoom, pan) — not canonical graph facts' })
+  saveGraphState(@Param('id') id: string, @Body() data: unknown, @Req() req: Request) {
+    return this.graphService.saveState(id, data, req.user as any);
+  }
+
+  @Get(':id/graph')
+  @Roles(Role.ANALYST, Role.ADMIN, Role.VIEWER)
+  @ApiOperation({ summary: 'Computed graph: entities attached to this case plus related entities, traversed via EntityRelation' })
+  getGraph(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('depth') depth?: string,
+    @Query('minConfidence') minConfidence?: string,
+  ) {
+    return this.graphService.getGraphData(id, req.user as any, { depth, minConfidence });
   }
 
   @Post()
@@ -49,9 +61,9 @@ export class InvestigationsController {
 
   @Get()
   @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
-  @ApiOperation({ summary: 'List investigations' })
-  findAll(@Req() req: Request) {
-    return this.investigationsService.findAll(req.user as any);
+  @ApiOperation({ summary: 'List investigations (cursor-paginated)' })
+  findAll(@Req() req: Request, @Query('cursor') cursor?: string, @Query('limit') limit?: string) {
+    return this.investigationsService.findAll(req.user as any, cursor, limit);
   }
 
   @Get(':id')
@@ -75,8 +87,13 @@ export class InvestigationsController {
 
   @Get(':id/entities')
   @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
-  @ApiOperation({ summary: 'List entities attached to this investigation' })
-  listEntities(@Param('id') id: string, @Req() req: Request) {
-    return this.investigationsService.listEntities(id, req.user as any);
+  @ApiOperation({ summary: 'List entities attached to this investigation (cursor-paginated)' })
+  listEntities(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.investigationsService.listEntities(id, req.user as any, cursor, limit);
   }
 }

@@ -13,6 +13,7 @@ import { ProvidersModule } from './modules/providers/providers.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
+import { ActivityModule } from './modules/activity/activity.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { EvidenceModule } from './modules/evidence/evidence.module';
     EventsModule,
     HealthModule,
     EvidenceModule,
+    ActivityModule,
   ],
   controllers: [],
   providers: [

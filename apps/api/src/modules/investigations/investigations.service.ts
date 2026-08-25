@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessControlService } from '../../common/access-control.service';
+import { PaginatedResult, parseLimit, sliceCursorPage } from '../../common/pagination';
 import { AttachEntityDto, CreateInvestigationDto, SessionUser } from '@osint/types';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class InvestigationsService {
   ) {}
 
   async create(dto: CreateInvestigationDto, user: SessionUser) {
-    return this.prisma.investigation.create({
+    const investigation = await this.prisma.investigation.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -19,17 +20,44 @@ export class InvestigationsService {
         ownerId: user.id,
       },
     });
-  }
 
-  async findAll(user: SessionUser) {
-    return this.prisma.investigation.findMany({
-      where: this.accessControl.investigationAccessWhere(user),
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        owner: { select: { displayName: true } },
-        _count: { select: { entities: true, evidence: true, alerts: true } },
+    await this.prisma.activityLog.create({
+      data: {
+        actorId: user.id,
+        action: 'investigation.create',
+        targetType: 'Investigation',
+        targetId: investigation.id,
+        metadata: { title: investigation.title },
       },
     });
+
+    return investigation;
+  }
+
+  async findAll(
+    user: SessionUser,
+    cursor?: string,
+    limit?: string,
+  ): Promise<PaginatedResult<unknown>> {
+    const take = parseLimit(limit);
+    const where = this.accessControl.investigationAccessWhere(user);
+
+    const [rows, total] = await Promise.all([
+      this.prisma.investigation.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: take + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: {
+          owner: { select: { displayName: true } },
+          _count: { select: { entities: true, evidence: true, alerts: true } },
+        },
+      }),
+      this.prisma.investigation.count({ where }),
+    ]);
+
+    const { items, nextCursor } = sliceCursorPage(rows, take);
+    return { items, nextCursor, total };
   }
 
   async findOne(id: string, user: SessionUser) {
@@ -76,7 +104,7 @@ export class InvestigationsService {
       },
     });
 
-    return this.prisma.investigationEntity.upsert({
+    const link = await this.prisma.investigationEntity.upsert({
       where: { investigationId_entityId: { investigationId, entityId: entity.id } },
       update: { notes: dto.notes, tags: dto.tags ?? [] },
       create: {
@@ -88,18 +116,46 @@ export class InvestigationsService {
       },
       include: { entity: true },
     });
+
+    await this.prisma.activityLog.create({
+      data: {
+        actorId: user.id,
+        action: 'investigation.entity.attach',
+        targetType: 'Investigation',
+        targetId: investigationId,
+        metadata: { entityId: entity.id, kind: entity.kind, value: entity.value },
+      },
+    });
+
+    return link;
   }
 
-  async listEntities(investigationId: string, user: SessionUser) {
+  async listEntities(
+    investigationId: string,
+    user: SessionUser,
+    cursor?: string,
+    limit?: string,
+  ): Promise<PaginatedResult<unknown>> {
     const allowed = await this.accessControl.canAccessInvestigation(user, investigationId);
     if (!allowed) {
       throw new ForbiddenException('Access denied to this investigation');
     }
 
-    return this.prisma.investigationEntity.findMany({
-      where: { investigationId },
-      orderBy: { addedAt: 'desc' },
-      include: { entity: true },
-    });
+    const take = parseLimit(limit);
+    const where = { investigationId };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.investigationEntity.findMany({
+        where,
+        orderBy: { addedAt: 'desc' },
+        take: take + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: { entity: true },
+      }),
+      this.prisma.investigationEntity.count({ where }),
+    ]);
+
+    const { items, nextCursor } = sliceCursorPage(rows, take);
+    return { items, nextCursor, total };
   }
 }
