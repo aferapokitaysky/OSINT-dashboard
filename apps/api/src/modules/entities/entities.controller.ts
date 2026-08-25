@@ -21,9 +21,14 @@ export class EntitiesController {
 
   @Get()
   @Roles(Role.ADMIN, Role.ANALYST, Role.VIEWER)
-  @ApiOperation({ summary: 'List entities (cross-case registry, or scoped via ?investigationId=)' })
-  findAll(@Req() req: Request, @Query('investigationId') investigationId?: string) {
-    return this.entitiesService.findAll(req.user as any, investigationId);
+  @ApiOperation({ summary: 'List entities (cross-case registry, or scoped via ?investigationId=), cursor-paginated' })
+  findAll(
+    @Req() req: Request,
+    @Query('investigationId') investigationId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.entitiesService.findAll(req.user as any, investigationId, cursor, limit);
   }
 
   @Get(':id')

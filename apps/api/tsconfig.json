@@ -22,5 +22,14 @@
     "esModuleInterop": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "ts-node": {
+    // Without this, ts-node only compiles files as they're require()'d and
+    // never eagerly loads tsconfig's `include` glob — so ambient .d.ts
+    // declarations (src/types/exif-parser.d.ts) that nothing explicitly
+    // imports are invisible to it, even though `tsc --noEmit` (which does
+    // walk `include`) sees them fine. Bit us in `pnpm dev`, not in typecheck/
+    // lint/build/docker, which is how it went unnoticed until now.
+    "files": true
+  }
 }
