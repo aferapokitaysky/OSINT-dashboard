@@ -8,6 +8,9 @@ import { AbuseIpDbProvider } from './integrations/abuseipdb.provider';
 import { WhoisProvider } from './integrations/whois.provider';
 import { DnsProvider } from './integrations/dns.provider';
 import { CrtShProvider } from './integrations/crtsh.provider';
+import { BlockstreamProvider } from './integrations/blockstream.provider';
+import { TronProvider } from './integrations/tron.provider';
+import { EtherscanProvider } from './integrations/etherscan.provider';
 import { EntityKind } from '@osint/types';
 
 @Injectable()
@@ -39,6 +42,11 @@ export class ProviderRegistry implements OnModuleInit {
       // else's enrichment jobs for the full default cooldown.
       circuitBreaker: { failureThreshold: 8, cooldownMs: 60_000, halfOpenMaxCalls: 1 },
       retry: { retries: 2 },
+    }));
+    this.register(new BlockstreamProvider());
+    this.register(new TronProvider());
+    this.register(new EtherscanProvider({
+      apiKey: this.configService.get('ETHERSCAN_API_KEY'),
     }));
   }
 
