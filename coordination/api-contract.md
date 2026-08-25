@@ -87,6 +87,57 @@ type Finding = {
 | `GET` | `/enrichments/:jobId` | Статус и прогресс задачи |
 | `GET` | `/providers` | Доступность, типы сущностей, лимиты и статус провайдеров |
 
+Реализовано в PR #3 (`develop`), кроме одной честной оговорки: `GET /investigations/:id/entities` и `GET /entities` пока без cursor pagination — обычный список, `nextCursor` всегда `null`. `Entity.riskScore`/`lastEnrichedAt` из типа выше тоже не реализованы (нет risk-scoring движка) — не полагайтесь на эти поля в ответе, их там нет.
+
+## Evidence / File Intelligence P2
+
+PR [#8](https://github.com/aferapokitaysky/OSINT-dashboard/pull/8), стек на #3. Бэкенд-MVP из `FILE_INTELLIGENCE.md`: только JPEG (с EXIF/GPS) и PDF — реализация подробностей в PR description, живьём проверена.
+
+```ts
+type Evidence = {
+  id: string;
+  investigationId: string;
+  kind: 'file' | 'note' | 'link';
+  title: string; // original filename for uploads
+  storagePath?: string;
+  mimeType?: string;
+  sha256?: string;
+  sizeBytes?: number;
+  createdAt: string;
+  fileAnalysis?: FileAnalysis;
+};
+
+type FileAnalysis = {
+  id: string;
+  status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'UNSUPPORTED';
+  detectedMime: string | null; // from magic bytes, never trust mimeType above for security decisions
+  sha256: string | null;
+  sha1: string | null;
+  md5: string | null;
+  metadata: Record<string, unknown> | null; // shape depends on detectedMime, see below
+  warnings: string[] | null;
+  analyzedAt: string | null;
+};
+```
+
+`metadata` shape by `detectedMime`:
+- `image/jpeg`: `{ capturedAt, cameraMake, cameraModel, software, orientation, gps: {latitude, longitude, altitude} | null, dimensions: {width, height} | null }`
+- `application/pdf`: `{ pageCount, title, author, creator, producer, createdAt, modifiedAt }`
+- `image/png` or anything else: `{}` (PNG has no EXIF container to read yet; unrecognized types get `status: 'UNSUPPORTED'` + a warning instead)
+
+| Метод | Endpoint | Назначение |
+|---|---|---|
+| `POST` | `/investigations/:id/evidence/files` | Multipart upload (`file` field), 25MB cap by default (`EVIDENCE_MAX_UPLOAD_BYTES`), returns `{ evidenceId, jobId }` |
+| `GET` | `/evidence/:id` | Full dossier including `fileAnalysis` |
+| `POST` | `/evidence/:id/analyze` | Re-queue analysis, returns `{ evidenceId, jobId }` |
+
+WS, same `investigation:<id>` room as enrichment:
+
+| Event | Payload |
+|---|---|
+| `file.analysis.progress` | `{ evidenceId, stage: 'hashing'\|'detecting_type'\|'extracting_metadata', progress }` |
+| `file.analysis.completed` | `{ evidenceId, analysisId, status, warningCount }` |
+
 ## WebSocket P1
 
 Namespace `/events`; JWT передаётся в Socket.IO auth handshake. Сервер сам назначает комнаты на основании прав пользователя — клиент не может подписываться на строку room произвольно.
